@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv) 
 {
-	lsp_client* myclient = lsp_client_create("127.0.0.1", atoi(argv[1]));
+lsp_client* myclient = lsp_client_create("127.0.0.1", atoi(argv[1]));
 	
 	char message[] = "ilovethiscoursealready";
 
