@@ -1,5 +1,6 @@
 #include"lsp.h"
 #include"epoch_handler.h"
+using namespace std;
 
 void c_epoch_timer(void* p)
 {
@@ -15,13 +16,13 @@ void c_epoch_timer(void* p)
     tv.tv_sec = 3;
     //tv.tv_sec = lsp_get_epoch_lth();
     tv.tv_usec = 0;
-    rv = select(NULL, NULL, NULL, NULL, &tv);
+    rv = select(0, NULL, NULL, NULL, &tv);
     
     if(rv == -1)
     {
       fprintf(stderr, "Select error: \n");
       char* errorMessage = strerror_r(errno, errorbuffer, 256);
-      printf(errorMessage);
+      cout<<"Error: "<<errorMessage;
       exit(1);
     }
     else if(rv == 0)

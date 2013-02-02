@@ -1,8 +1,9 @@
 #include<pthread.h>
 #include "lsp.h"
 #include "epoch_handler.h"
-//#include "lspmessage.pb-c.h"
+#include "lspmessage.pb-c.h"
 
+using namespace std;
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
 double drop_rate = _DROP_RATE;
@@ -88,6 +89,7 @@ lsp_client* lsp_client_create(const char* src, int port)
   lsp_client* new_client = new lsp_client;
   pthread_create(&client_epoch, NULL, c_epoch_timer, (void*) new_client);
   //pthread_join(client_epoch, NULL);
+  return new_client;
 }
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
@@ -148,6 +150,8 @@ lsp_server* lsp_server_create(int port)
 	}
 
 	freeaddrinfo(servinfo);
+	uint8_t* buff =message_encode(1,2,"11");
+	message_decode(8,buff);
 }
 
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
@@ -162,5 +166,33 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 
 bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 {
+
+}
+
+uint8_t* message_encode(int conn_id,int seq_no,const char* payload)
+{
+
+int len;
+LSPMessage msg = LSPMESSAGE__INIT;
+msg.connid = conn_id;
+msg.seqnum = seq_no;
+msg.payload.data = (uint8_t *)malloc(sizeof(uint8_t) * strlen(payload));
+msg.payload.len = strlen(payload);
+memcpy(msg.payload.data, payload, strlen(payload)*sizeof(uint8_t));
+len = lspmessage__get_packed_size(&msg);
+uint8_t* buf = (uint8_t *)malloc(len);
+lspmessage__pack(&msg, buf);
+return buf;
+
+}
+
+void message_decode(int len,uint8_t* buf)
+{
+len=8;
+LSPMessage* msg=lspmessage__unpack(NULL, len, buf);
+cout<<" Conn_id "<<msg->connid<<"\n";
+cout<<" Seq Num "<<msg->seqnum<<"\n";
+cout<<" payload data"<<msg->payload.data<<"\n";
+cout<<" payload len"<<msg->payload.len<<"\n";
 
 }

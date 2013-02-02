@@ -99,3 +99,6 @@ lsp_server* lsp_server_create(int port);
 int  lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id);
 bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id);
 bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id);
+
+uint8_t* message_encode(int conn_id,int seq_no,const char* payload);
+void message_decode(int len,uint8_t* buf);
