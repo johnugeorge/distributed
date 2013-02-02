@@ -2,6 +2,7 @@
 
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -81,8 +82,8 @@ pckt_fmt* last_pckt_sent;
 } lsp_client;
 
 lsp_client* lsp_client_create(const char* dest, int port);
-int lsp_client_read(lsp_client* a_client, char* pld);
-bool lsp_client_write(lsp_client* a_client, char* pld, int lth);
+int lsp_client_read(lsp_client* a_client, uint8_t* pld);
+bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth);
 bool lsp_client_close(lsp_client* a_client);
 
 typedef struct
@@ -92,6 +93,6 @@ client_info* client_conn[MAX_CLIENTS];
 
 
 lsp_server* lsp_server_create(int port);
-int  lsp_server_read(lsp_server* a_srv, void* pld, int* conn_id);
-bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, int conn_id);
-bool lsp_server_close(lsp_server* a_srv, int conn_id);
+int  lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id);
+bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id);
+bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id);

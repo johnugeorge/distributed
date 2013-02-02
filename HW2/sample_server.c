@@ -4,8 +4,8 @@ int main(int argc, char** argv)
 {
 	lsp_server* myserver = lsp_server_create(atoi(argv[1]));
 	
-	char payload[4096];
-	int returned_id;
+	uint8_t payload[4096];
+	uint32_t returned_id;
 	int bytes_read;
 	
 	for(;;)
