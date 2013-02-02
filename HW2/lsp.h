@@ -27,6 +27,9 @@
 void lsp_set_epoch_lth(double lth);
 void lsp_set_epoch_cnt(int cnt);
 void lsp_set_drop_rate(double rate);
+double lsp_get_epoch_lth();
+int lsp_get_epoch_cnt();
+double lsp_get_epoch_rate();
 
 typedef struct
 {

@@ -1,5 +1,7 @@
+#include<pthread.h>
 #include "lsp.h"
-#include "lspmessage.pb-c.h"
+#include "epoch_handler.h"
+//#include "lspmessage.pb-c.h"
 
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
@@ -8,20 +10,47 @@ double drop_rate = _DROP_RATE;
 /*
  *
  *
- *				LSP RELATED FUNCTIONS
+ * LSP RELATED FUNCTIONS
  *
  *
  */  
 
-void lsp_set_epoch_lth(double lth){epoch_lth = lth;}
-void lsp_set_epoch_cnt(int cnt){epoch_cnt = cnt;}
-void lsp_set_drop_rate(double rate){drop_rate = rate;}
+void lsp_set_epoch_lth(double lth)
+{
+  epoch_lth = lth;
+}
+
+void lsp_set_epoch_cnt(int cnt)
+{
+  epoch_cnt = cnt;
+}
+
+void lsp_set_drop_rate(double rate)
+{
+  drop_rate = rate;
+}
+
+double lsp_get_epoch_lth()
+{
+  return epoch_lth;
+}
+
+int lsp_get_epoch_cnt()
+{
+  return epoch_cnt;
+}
+
+double lsp_get_drop_rate()
+{
+  return drop_rate;
+}
+
 
 
 /*
  *
  *
- *				CLIENT RELATED FUNCTIONS
+ * CLIENT RELATED FUNCTIONS
  *
  *
  */  
@@ -29,8 +58,8 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 
 lsp_client* lsp_client_create(const char* src, int port)
 {
-	struct addrinfo hints, *servinfo;
-	int sockfd,yes=1;
+  struct addrinfo hints, *servinfo;
+  int sockfd, yes=1;
 
 	// first, load up address structs with getaddrinfo():
 
@@ -49,13 +78,20 @@ lsp_client* lsp_client_create(const char* src, int port)
 		sockfd = 0;
 	}
 
+  /*
+   * code to send request to server goes here 
+   */
 
-
+  //start the client side epoch
+  pthread_t client_epoch;
+  void *c_epoch_timer(void*);
+  lsp_client* new_client = new lsp_client;
+  pthread_create(&client_epoch, NULL, c_epoch_timer, (void*) new_client);
+  //pthread_join(client_epoch, NULL);
 }
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 {
-
 	
 }
 
@@ -72,7 +108,7 @@ bool lsp_client_close(lsp_client* a_client)
 /*
  *
  *
- *				SERVER RELATED FUNCTIONS
+ * SERVER RELATED FUNCTIONS
  *
  *
  */  
