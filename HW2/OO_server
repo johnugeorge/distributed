@@ -5,8 +5,8 @@ class Registry
   private:
   map<int, string> worker_task
   map<int, int> worker_to_request
-  typedef pair<int, string> w_task
-  map<int, list<w_task> > request_divided //this list must remember order
+  //typedef pair<int, string> w_task
+  map<int, list<WorkerTask> > request_divided //this list must remember order
   map<int, list<int> > sub_tasks_remaining
   list<int> requests_in_progress
   queue<int> free_workers
@@ -87,7 +87,7 @@ class Registry
     }
   }
 
-  void handle_result(int worker_id, string result)
+  void handle_result(int worker_id, int result)
   {
     /* whether result is PASS or FAIL, just return the result to the requester and
      * assign a new request if exists to this worker
@@ -100,8 +100,21 @@ class Registry
       //this means the req_id client could be dead; so just ignore the result
       return
     }
+    
+    if(result == TaskResult.PASS)
+    {
+       bool success = lsp_server_write(req_id, result)
+       // no need to care about whether success is true or false. If client is dead, let it be.
+       return
+    }
 
-    /* need a DS that combines results if fail; if all fail then notify requester of a failure */
+    /* if its a FAIL, we need a DS that combines results if fail; if all fail then notify requester of a failure */
+    list<WorkerTask> tasks = request_divided.get(req_id)
+    for(w in WorkerTask)
+    {
+      if(w.worker_id == worker_id)
+        w.result = result
+    }
   }
 
   void handle_dead_client(int conn_id)
@@ -185,9 +198,16 @@ class Registry
 }
 
 /* might not use this */
-class Task
+class WorkerTask
 {
   public:
   int conn_id
-  string task
+  int task_num
+  TaskResult result
+}
+
+enum TaskResult
+{
+  FAIL = 0
+  PASS = 1
 }
