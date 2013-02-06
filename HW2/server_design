@@ -26,12 +26,20 @@ queue<int> free_workers
 
 server()
 {
-  if(JOIN)
-    handle_join()
-  else if(CRACK)
-    handle_crack()
-  else if(PASS or FAIL)
-    handle_result(worker_id, result)
+  while(1)
+  {
+    if(JOIN)
+      handle_join()
+    else if(CRACK)
+      handle_crack()
+    else if(PASS or FAIL)
+      handle_result(worker_id, result)
+    else if(NULL or 0)
+    {
+      /* this case is when a client is dead. The client can be a requester or a worker. We need to differentiate */
+      handle_dead_client(conn_id)
+    }
+  }
 }
 
 bool handle_crack(int req_id, string req)
@@ -98,12 +106,18 @@ void handle_result(int worker_id, string result)
    */
 
   req_id = worker_to_request.get(worker_id)
-  lsp_server_write(req_id, result)
+  curr_sub_tasks = request_mapping.get(req_id)
 
-  if(success())
+  if(curr_sub_tasks == NULL)
+  {
+    //this means the req_id client could be dead; so just ignore the result
+    return
+  }
+  
+  bool success = lsp_server_write(req_id, result)
+  if(success)
   {
     worker_to_request.remove(worker_id)
-    curr_sub_tasks = request_mapping.get(req_id)
     for(c in curr_sub_tasks)
     {
       lsp_server_write(c.first, STOP_TASK)
@@ -118,6 +132,31 @@ void handle_result(int worker_id, string result)
     //what to do if msg sending fails?
 }
 
+void handle_dead_client(int conn_id)
+{
+  //first need to figure out if this is a requester or a worker
+  bool worker = false
+  int req_id = conn_id
+  if(conn_id in worker_to_request)
+  {
+    worker = true
+    req_id = worker_to_request.get(conn_id)
+  }
+   
+  if(worker)
+  {
+    /* this is a worker who has just been discovered to be dead; 
+    need to re-assign the task to another worker and modify the registry for this worker */
+    
+  }
+  else
+  {
+    /* this is a requester; so remove it from the request_mapping, so that the
+    cracking result is ignored when it arrives*/
+    request_mapping.remove(req_id)
+  }
+}
+
 void register_new_task(int worker_id, int req_id, string task)
 {
   worker_task.put(worker_id, task)
@@ -126,6 +165,8 @@ void register_new_task(int worker_id, int req_id, string task)
   /* the below call is an UPSERT */
   request_mapping.put(req_id, pair<worker_id, task>)
 }
+
+
 
 =================================================
 
