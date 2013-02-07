@@ -32,10 +32,10 @@ void c_network_handler(void* p)
 		  exit(1);
 	  }
 
-	  cout<<"client: got packet from %s\n",
+	  cout<<"client: got packet from " <<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s);
+				  s, sizeof s)<<" \n";
 
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
@@ -51,7 +51,7 @@ void c_network_handler(void* p)
 		  if((pkt.conn_id != 0 ) && (pkt.seq_no == 0))//conn_resp
 		  {
 			  client->conn_id= pkt.conn_id;
-			  client->conn_state=CONN_REQ_RCVD;
+			  client->conn_state=CONN_REQ_ACK_RCVD;
 			  cout<<" New Connection Id of the Client "<<client->conn_id<<"\n";
 		  }
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
@@ -89,7 +89,10 @@ void c_network_handler(void* p)
 			else
 			{
 				client->last_seq_no_rcvd=pkt.seq_no;
-				client->inbox_queue.push(pkt);
+				inbox_struct inbox;
+				inbox.pkt=pkt;
+				inbox.payload_size=len;
+				client->inbox_queue.putq(inbox);
 				client_send(client,DATA_ACK,pkt.seq_no);
 			}
 		}
@@ -120,16 +123,16 @@ void s_network_handler(void* p)
 		  exit(1);
 	  }
 
-	  cout<<"listener: got packet from %s\n",
+	  cout<<"listener: got packet from "<<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s);
+				  s, sizeof s)<<"\n";
 
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
 	  PRINT_PACKET(pkt,"RECEIVE")
 	  //cout<<"Num bytes "<<numbytes<<" len "<<len<<" pkt data size "<<strlen(pkt.data)<<"\n";
-	 // conn_arg conn_argv;
+	  conn_arg conn_argv;
 	  //conn_argv.conn_id=client->conn_id;
 	  //conn_argv.seq_no=pkt.seq_no;
 
@@ -150,28 +153,34 @@ void s_network_handler(void* p)
 			  client_info* new_client  =new client_info;
 			   new_client->conn_id=server->next_free_conn_id++;
 			   new_client->addr=their_addr;
+			   new_client->conn_state=CONN_REQ_ACK_SENT;
 			  server->client_conn_info[new_client->conn_id]  =  new_client;
 			  server_send(server,CONN_ACK,new_client->conn_id);
 
 		  }
-
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
 		  {
+			  conn_argv.conn_id=pkt.conn_id;
+			  conn_argv.seq_no=pkt.seq_no;
+			  client_info* client_conn=server->client_conn_info[pkt.conn_id];
 
-	          }
+			  if((client_conn->conn_map)[conn_argv]==true)
+			  {
+				  cout<<"Error:Ack already recvd:Duplicate \n";
+			  }
+			  else
+			  {
+				  (client_conn->conn_map)[conn_argv]=true;      
+			  }
+		  }
 		  else
 	          {
 			  printf("Error in packet parsing\n");
 		          exit(1);
 		  }
-		 /* if((client->conn_map)[conn_argv]==true)
-		  {
-			  cout<<"Error:Ack already recvd:Duplicate \n";
-	          }
-		  else
-	          {
-	          (client->conn_map)[conn_argv]=true;      
-	          }*/	  
+
+		  
+	  
 	  }
           else //data packet
 	  {
@@ -191,7 +200,11 @@ void s_network_handler(void* p)
 			else
 			{
 				client_conn->last_seq_no_rcvd=pkt.seq_no;
-				client_conn->inbox_queue.push(pkt);
+				//client_conn->inbox_queue.push(pkt);
+				inbox_struct inbox;
+				inbox.pkt=pkt;
+				inbox.payload_size=len;
+				server->inbox_queue.putq(inbox);
 				server_send(server,DATA_ACK,client_conn->conn_id,pkt.seq_no);
 			}
 		}

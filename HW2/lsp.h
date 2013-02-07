@@ -17,7 +17,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include <queue>
+#include "Queue.h"
 #include <map>
 #include <arpa/inet.h>
 // Global Parameters. For both server and clients.
@@ -104,8 +104,15 @@ typedef enum conn_type
 	DATA_SENT=5,
 	DATA_ACK_RCD=6,
 	DATA_RCVD=7,
-	DATA_ACK_SENT=8
+	DATA_ACK_SENT=8,
+	CONN_WAIT=9
 }conn_type;
+
+typedef struct inbox_struct
+{
+	pckt_fmt pkt;
+	int payload_size;
+}inbox_struct;
 
 typedef struct client_info
 {
@@ -117,9 +124,9 @@ pckt_type last_pkt_rcvd;
 pckt_type last_pkt_sent;
 conn_type conn_state;
 pckt_fmt last_pckt_rcvd;
-pckt_fmt* last_pckt_sent;
-std::queue<pckt_fmt> inbox_queue;
-std::queue<pckt_fmt> outbox_queue;
+pckt_fmt last_pckt_sent;
+Queue<inbox_struct> inbox_queue;
+Queue<pckt_fmt> outbox_queue;
 conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
@@ -127,6 +134,7 @@ int last_seq_no_rcvd;
 client_info()
 {
 seq_no=0;
+conn_state=CONN_WAIT;
 conn_id=0;
 last_seq_no_rcvd=0;
 first_data_rcvd=false;
@@ -146,15 +154,15 @@ pckt_type last_pkt_sent;
 conn_type conn_state;
 pckt_fmt last_pckt_rcvd;
 pckt_fmt last_pckt_sent;
-std::queue<pckt_fmt> inbox_queue;
-std::queue<pckt_fmt> outbox_queue;
+Queue<inbox_struct> inbox_queue;
+Queue<pckt_fmt> outbox_queue;
 conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
 int last_seq_no_rcvd;
 lsp_client()
 {
-conn_state=CONN_REQ_SENT;
+conn_state=CONN_WAIT;
 seq_no=0;
 conn_id=0;
 last_seq_no_rcvd=0;
@@ -174,6 +182,7 @@ bool lsp_client_close(lsp_client* a_client);
 typedef struct lsp_server
 {
 client_info_map client_conn_info;
+Queue<inbox_struct> inbox_queue;
 int next_free_conn_id;
 int socket_fd;
 lsp_server()
