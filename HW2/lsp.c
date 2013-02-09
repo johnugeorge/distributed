@@ -9,6 +9,7 @@ double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
 double drop_rate = _DROP_RATE;
 
+thread_info thread_info_map;
 /*
  *
  *
@@ -66,6 +67,7 @@ pthread_t server_network_handler;
 lsp_client* lsp_client_create(const char* src, int port)
 {
   struct addrinfo hints, *servinfo;
+  thread_info_map[pthread_self()]=" MAIN CLIENT THREAD            :";
   int sockfd, yes=1;
 
 	// first, load up address structs with getaddrinfo():
@@ -126,7 +128,6 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		 a_client->inbox_queue.getq(inbox);
 		 char* ptr=inbox.pkt.data;
 		 int len=inbox.payload_size;
-		 cout<<" Size of msg "<<strlen(ptr);
 		 //a_client->inbox_queue.pop();
 		 memcpy(pld,ptr,strlen(ptr)+1);
 		 free(ptr);
@@ -149,15 +150,15 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
 	pkt.data=(char*)malloc(lth + 1);
 	memcpy(pkt.data,pld,lth + 1);
 	//PRINT_PACKET(pkt,"SEND")
-	cout<<" Lsp_client_write "<<a_client->conn_id<<" conn state "<< (a_client->conn_state) << " data sent flag "<<a_client->first_data_sent <<" ack status "<<(a_client->conn_map)[conn_argv]<<" prev seq_no :"<<a_client->seq_no<<" length "<<lth<<"\n";
-	if((a_client->conn_state == CONN_REQ_ACK_RCVD) && (((a_client->conn_map)[conn_argv]==true || a_client->first_data_sent ==false )))
+	cout<<" Lsp_client_write "<<a_client->conn_id<<" conn state "<< (a_client->conn_state) << " data sent flag "<<a_client->first_data_sent <<" ack status "<<get_ack_status(a_client,conn_argv)<<" prev seq_no :"<<a_client->seq_no<<" length "<<lth<<"\n";
+	if((a_client->conn_state == CONN_REQ_ACK_RCVD) && ((get_ack_status(a_client,conn_argv)==true || a_client->first_data_sent ==false )))
 	{
 		client_send(a_client,DATA_PCKT,a_client->seq_no,(char*)pld,lth);
 		if(a_client->last_pckt_sent.data != NULL)
 		{
 			free(a_client->last_pckt_sent.data);
 		}
-		a_client->last_pckt_sent.data=(char*)malloc(lth);
+		a_client->last_pckt_sent.data=(char*)malloc(lth+1);
 		a_client->last_pckt_sent.conn_id=a_client->conn_id;
 		a_client->last_pckt_sent.seq_no=a_client->seq_no;
 		memcpy(a_client->last_pckt_sent.data,pld,lth +1);
@@ -167,7 +168,12 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
 	else
 	{
 		cout<<" Ack not recieved for earlier seq no "<< a_client->seq_no <<" .Now, outbox size is "<<a_client->outbox_queue.size()<<"\n";
-		a_client->outbox_queue.putq(pkt);
+		//		a_client->seq_no++;
+		//pkt.seq_no=a_client->seq_no;
+		outbox_struct outbox;
+		outbox.pkt=pkt;
+		outbox.payload_size=lth;
+		a_client->outbox_queue.putq(outbox);
 
 	}
 
@@ -194,7 +200,7 @@ lsp_server* lsp_server_create(int port)
 	int sockfd,yes=1;
 
 	// first, load up address structs with getaddrinfo():
-
+	thread_info_map[pthread_self()]=" MAIN SERVER THREAD           :";
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
 	hints.ai_socktype = SOCK_DGRAM;
@@ -210,7 +216,6 @@ lsp_server* lsp_server_create(int port)
 		sockfd = 0;
 	}
 	
-	cout<<" socket Fd "<<sockfd;
 	if (sockfd && setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,sizeof(int)) == -1){
 		perror("setsockopt");
 		sockfd =0;
@@ -231,11 +236,13 @@ lsp_server* lsp_server_create(int port)
 	message_decode(21,buff,pkt);
 	//if(pkt.data[0]=='\0')cout<<"true"<< strlen(pkt.data);else cout<<"false"<<strlen(pkt.data);*/
 	void *s_network_handler(void*);
+	void *s_epoch_timer(void*);
 
 
 	lsp_server* new_server = new lsp_server;
 	new_server->socket_fd=sockfd;
 	pthread_create(&server_network_handler, NULL, s_network_handler, (void*) new_server);
+  	pthread_create(&server_epoch, NULL, s_epoch_timer, (void*) new_server);
 	return new_server;
 }
 
@@ -295,8 +302,8 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 			pkt.data=(char*)malloc(lth +1);
 			memcpy(pkt.data,pld,lth +1);
 			//PRINT_PACKET(pkt,"SEND")
-			cout<<" Lsp_server_write "<<a_client->conn_id<<" conn state "<< (a_client->conn_state) << " data sent flag "<<a_client->first_data_sent <<" ack status "<<(a_client->conn_map)[conn_argv]<<" prev seq_no :"<<a_client->seq_no<<"\n";
-			if((a_client->conn_state == CONN_REQ_ACK_SENT) && (((a_client->conn_map)[conn_argv]==true || a_client->first_data_sent ==false )))
+			cout<<" Lsp_server_write "<<a_client->conn_id<<" conn state "<< (a_client->conn_state) << " data sent flag "<<a_client->first_data_sent <<" ack status "<<get_ack_status(a_srv,a_client,conn_argv)<<" prev seq_no :"<<a_client->seq_no<<"\n";
+			if((a_client->conn_state == CONN_REQ_ACK_SENT) && ((get_ack_status(a_srv,a_client,conn_argv)==true || a_client->first_data_sent ==false )))
 			{
 				server_send(a_srv,DATA_PCKT,a_client->conn_id,a_client->seq_no,(char*)pld,lth);
 				if(a_client->last_pckt_sent.data != NULL)
@@ -313,7 +320,10 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 			else
 			{
 				cout<<" Ack not recieved for earlier seq no "<< a_client->seq_no <<" .Now, outbox size is "<<a_client->outbox_queue.size()<<"\n";
-				a_client->outbox_queue.putq(pkt);
+				outbox_struct outbox;
+				outbox.pkt=pkt;
+				outbox.payload_size=lth;
+				a_client->outbox_queue.putq(outbox);
 
 			}
 		}
@@ -379,7 +389,8 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 	        conn_argv.seq_no=client->seq_no;
 		pkt.seq_no=client->seq_no;
 		pkt.data=(char*)payload;
-       		(client->conn_map)[conn_argv]=false;
+       		//(client->conn_map)[conn_argv]=false;
+	        set_ack_status(client,conn_argv,false);
 	}
 	else if(pkt_type == CONN_REQ)
 	{
@@ -387,7 +398,8 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 		conn_argv.seq_no=0;
 		pkt.seq_no=0;
 		pkt.data=(char*)s.c_str();
-       		(client->conn_map)[conn_argv]=false;
+       		//(client->conn_map)[conn_argv]=false;
+	        set_ack_status(client,conn_argv,false);
 
 
 	}
@@ -444,7 +456,8 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	        conn_argv.seq_no=client_conn->seq_no;
 		pkt.seq_no=client_conn->seq_no;
 		pkt.data=(char*)payload;
-       		(client_conn->conn_map)[conn_argv]=false;
+       	//	(client_conn->conn_map)[conn_argv]=false;
+	        set_ack_status(server,client_conn,conn_argv,false);
 
 	}
 	else if(pkt_type == CONN_ACK)
@@ -487,3 +500,47 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	cout<<"sent "<< numbytes<<" bytes of pkt_type "<<pkt_type<<"\n";
 	free(buff);
 }
+
+bool get_ack_status(lsp_client* client,conn_arg arg)
+{
+//	cout<<" get ack status client ";
+//	pthread_mutex_lock(&(client->lock));
+	bool value = (client->conn_map)[arg];
+//	pthread_mutex_unlock(&(client->lock));
+//	cout<<" get ack status client ";
+	return value;
+}
+
+bool get_ack_status(lsp_server* server,client_info* client,conn_arg arg)
+{
+//	cout<<" get ack status server ";
+//	pthread_mutex_lock(&(server->lock));
+
+	bool value= (client->conn_map)[arg];
+//	pthread_mutex_unlock(&(server->lock));
+//	cout<<" get ack status server ";
+	return value;
+}
+
+void set_ack_status(lsp_client* client,conn_arg arg, bool value)
+{
+//	cout<<" set ack status client seqno "<<arg.seq_no<<" value "<<value;
+//	pthread_mutex_lock(&(client->lock));
+
+	(client->conn_map)[arg]=value;
+//	pthread_mutex_unlock(&(client->lock));
+//	cout<<" set ack status client ";
+}
+
+void set_ack_status(lsp_server* server,client_info* client,conn_arg arg, bool value)
+{
+//	cout<<" set ack status server seqno "<<arg.seq_no<<" value "<<value;
+//	pthread_mutex_lock(&(server->lock));
+	
+	(client->conn_map)[arg]=value;
+//	pthread_mutex_unlock(&(server->lock));
+//	cout<<" set ack status server ";
+}
+
+
+

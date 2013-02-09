@@ -6,4 +6,6 @@
 
 
 void c_epoch_timer(void*);
+void s_epoch_timer(void*);
 void c_handle_epoch(lsp_client* client);
+void s_handle_epoch(lsp_server* server);

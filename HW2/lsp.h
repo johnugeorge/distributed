@@ -18,6 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "Queue.h"
+#include "util.h"
 #include <map>
 #include <arpa/inet.h>
 // Global Parameters. For both server and clients.
@@ -27,7 +28,11 @@
 #define _DROP_RATE 0.0
 #define  MAX_CLIENTS 20
 #define MAX_PAYLOAD_SIZE 1000
-#define cout cout<<pthread_self()<<" : " 
+
+
+#define cout cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+
+#define COUT cout
 
 #define PRINT_PACKET(pkt,dir) \
 	cout<< "==========START=======================\n"; \
@@ -43,6 +48,7 @@ void lsp_set_drop_rate(double rate);
 double lsp_get_epoch_lth();
 int lsp_get_epoch_cnt();
 double lsp_get_epoch_rate();
+
 
 typedef struct
 {
@@ -70,6 +76,10 @@ typedef struct
 }conn_comp;
 
 typedef std::map<conn_arg,bool,conn_comp> conn_seqno_map;
+typedef std::map<long long,std::string> thread_info;
+
+extern thread_info thread_info_map;
+
 typedef enum pckt_type
 {
 	DATA_PCKT=1,
@@ -114,6 +124,13 @@ typedef struct inbox_struct
 	int payload_size;
 }inbox_struct;
 
+typedef struct outbox_struct
+{
+	pckt_fmt pkt;
+	int payload_size;
+}outbox_struct;
+
+
 typedef struct client_info
 {
 int conn_id;
@@ -126,7 +143,7 @@ conn_type conn_state;
 pckt_fmt last_pckt_rcvd;
 pckt_fmt last_pckt_sent;
 Queue<inbox_struct> inbox_queue;
-Queue<pckt_fmt> outbox_queue;
+Queue<outbox_struct> outbox_queue;
 conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
@@ -145,6 +162,7 @@ first_data_sent=false;
 
 typedef struct lsp_client
 {
+pthread_mutex_t lock;
 int conn_id;
 int socket_fd;
 int seq_no;
@@ -155,7 +173,7 @@ conn_type conn_state;
 pckt_fmt last_pckt_rcvd;
 pckt_fmt last_pckt_sent;
 Queue<inbox_struct> inbox_queue;
-Queue<pckt_fmt> outbox_queue;
+Queue<outbox_struct> outbox_queue;
 conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
@@ -183,6 +201,7 @@ typedef struct lsp_server
 {
 client_info_map client_conn_info;
 Queue<inbox_struct> inbox_queue;
+pthread_mutex_t lock;
 int next_free_conn_id;
 int socket_fd;
 lsp_server()
@@ -201,4 +220,8 @@ uint8_t* message_encode(int conn_id,int seq_no,const char* payload,int& outlengt
 int message_decode(int len,uint8_t* buf,pckt_fmt& pkt);
 void client_send(lsp_client* client,pckt_type pkt_type,int seq_no=0,const char *payload="",int length=0);
 void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int seq_no=0,const char *payload="",int length=0);
+void set_ack_status(lsp_client* client,conn_arg arg, bool value);
+void set_ack_status(lsp_server* server,client_info* client,conn_arg arg, bool value);
+bool get_ack_status(lsp_server* server,client_info* client,conn_arg arg);
+bool get_ack_status(lsp_client* client,conn_arg arg);
 
