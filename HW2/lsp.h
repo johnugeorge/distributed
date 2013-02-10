@@ -29,25 +29,36 @@
 #define  MAX_CLIENTS 20
 #define MAX_PAYLOAD_SIZE 1000
 
+typedef enum loglevels{
+	LOG_DEBUG=1,
+	LOG_INFO =2,
+	LOG_CRIT =3
+}loglevels;
 
+extern int loglevel;
 #define cout cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+
+#define PRINT(a,b) \
+		if(a>=loglevel) \
+		cout<<b<<"\n";
+
 
 #define COUT cout
 
 #define PRINT_PACKET(pkt,dir) \
-	cout<< "==========START=======================\n"; \
-	cout<< " ----"<<dir<<" Packet Info----\n"; \
-	cout<< " Conn_Id:  "<<pkt.conn_id<<"\n"; \
-        cout<< " Seq_no:  "<<pkt.seq_no<<"\n"; \
-        cout<< " Payload: "<<pkt.data<<"\n"; \
-	cout<< "==========END=======================\n";
+	PRINT(LOG_DEBUG, "==========START=======================\n"); \
+	PRINT(LOG_DEBUG, " ----"<<dir<<" Packet Info----\n"); \
+	PRINT(LOG_DEBUG, " Conn_Id:  "<<pkt.conn_id<<"\n"); \
+        PRINT(LOG_DEBUG, " Seq_no:  "<<pkt.seq_no<<"\n"); \
+        PRINT(LOG_DEBUG, " Payload: "<<pkt.data<<"\n"); \
+	PRINT(LOG_DEBUG, "==========END=======================\n");
 
 void lsp_set_epoch_lth(double lth);
 void lsp_set_epoch_cnt(int cnt);
 void lsp_set_drop_rate(double rate);
 double lsp_get_epoch_lth();
 int lsp_get_epoch_cnt();
-double lsp_get_epoch_rate();
+double lsp_get_drop_rate();
 
 
 typedef struct
@@ -148,6 +159,7 @@ conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
 int last_seq_no_rcvd;
+int no_epochs_elapsed;
 client_info()
 {
 seq_no=0;
@@ -156,6 +168,7 @@ conn_id=0;
 last_seq_no_rcvd=0;
 first_data_rcvd=false;
 first_data_sent=false;
+no_epochs_elapsed=0;
 }
 } client_info;
 
@@ -178,8 +191,10 @@ conn_seqno_map conn_map;
 bool first_data_rcvd;
 bool first_data_sent;
 int last_seq_no_rcvd;
+int no_epochs_elapsed;
 lsp_client()
 {
+no_epochs_elapsed=0;
 conn_state=CONN_WAIT;
 seq_no=0;
 conn_id=0;

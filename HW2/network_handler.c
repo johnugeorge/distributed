@@ -16,7 +16,7 @@ socket_cmp_addr(const struct sockaddr *sa1, const struct sockaddr *sa2)
 {
 	if (sa1->sa_family != sa2->sa_family)
 	{
-		cout<<" Error in family \n";
+		PRINT(LOG_CRIT," Error in family \n");
 		exit(1);
 	}
 
@@ -33,7 +33,7 @@ socket_cmp_addr(const struct sockaddr *sa1, const struct sockaddr *sa2)
 			       }
 		default:
 			       {
-				       cout<<" Error in family \n";
+				       PRINT(LOG_CRIT," Error in family \n");
 				       exit(1);
 			       }
 	}
@@ -61,7 +61,7 @@ socket_cmp_port(const struct sockaddr *sa1, const struct sockaddr *sa2)
 void c_network_handler(void* p)
 {
   thread_info_map[pthread_self()]=" CLIENT NETWORK HANDLER THREAD :";
-  cout<<" c_network_handler \n";
+  PRINT(LOG_DEBUG," c_network_handler \n");
   lsp_client* client=(lsp_client*)p;
   struct sockaddr_storage their_addr;
   uint8_t raw_buf[MAX_PAYLOAD_SIZE],decoded_buf[MAX_PAYLOAD_SIZE];
@@ -73,31 +73,35 @@ void c_network_handler(void* p)
   {
 
 	  addr_len = sizeof their_addr;
-	  cout<<"Waitng in client recv\n";
+	  PRINT(LOG_DEBUG,"Waitng in client recv\n");
 	  if ((numbytes = recvfrom(client->socket_fd, raw_buf, sizeof(raw_buf), 0,
 					  (struct sockaddr *)&their_addr, &addr_len)) == -1) {
 		  perror("recvfrom");
 		  exit(1);
 	  }
 
-	  cout<<"client: got packet from " <<
+	  PRINT(LOG_DEBUG,"client: got packet from " <<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s)<<" \n";
+				  s, sizeof s)<<" \n");
 
 	
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
 	  PRINT_PACKET(pkt,"RECEIVE")
-	  //cout<<"Num bytes "<<numbytes<<" len "<<len<<"\n";
+	  //PRINT(LOG_DEBUG,"Num bytes "<<numbytes<<" len "<<len<<"\n";
 	  conn_arg conn_argv;
 	  conn_argv.conn_id=client->conn_id;
 	  conn_argv.seq_no=pkt.seq_no;
-	  
-	  double rand_value = (double(rand() %10)/10);
-	  if(rand_value <= .8)
+	 
 	  {
-		  cout<<"PACKET DROPPED_______________ rand value"<<rand_value<<"\n";
+		  PRINT(LOG_DEBUG,"Resetting epoch timers\n");
+		  client->no_epochs_elapsed=0;
+	  } 
+	  double rand_value = (double(rand() %10)/10);
+	  if(rand_value <= lsp_get_drop_rate())
+	  {
+		  PRINT(LOG_DEBUG,"PACKET DROPPED_______________ rand value"<<rand_value<<"\n");
 		  free(pkt.data);
 		  continue;
 	  }
@@ -108,7 +112,7 @@ void c_network_handler(void* p)
 		  {
 			  client->conn_id= pkt.conn_id;
 			  client->conn_state=CONN_REQ_ACK_RCVD;
-			  cout<<" New Connection Id of the Client "<<client->conn_id<<"\n";
+			  PRINT(LOG_DEBUG," New Connection Id of the Client "<<client->conn_id<<"\n");
 		  }
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
 		  {
@@ -116,12 +120,12 @@ void c_network_handler(void* p)
 	          }
 		  else
 	          {
-			  printf("Error in packet parsing\n");
+			  PRINT(LOG_CRIT,"Error in packet parsing\n");
 		          exit(1);
 		  }
 		  if(get_ack_status(client,conn_argv)==true)
 		  {
-			  cout<<"Error:Ack already recvd:Duplicate \n";
+			  PRINT(LOG_DEBUG,"Error:Ack already recvd:Duplicate \n");
 	          }
 		  else
 	          {
@@ -135,13 +139,13 @@ void c_network_handler(void* p)
 		client->first_data_rcvd=true;
                 if(client->conn_id != pkt.conn_id)
 		{
-			cout<<" Rcvd Data packet from unknown host \n";
+			PRINT(LOG_DEBUG," Rcvd Data packet from unknown host \n");
 		}
 		else
 		{
 			if(pkt.seq_no <= client->last_seq_no_rcvd)
 			{
-				cout<<" Duplicate or older msg Rcvd \n";
+				PRINT(LOG_DEBUG," Duplicate or older msg Rcvd \n");
 			}
 			else
 			{
@@ -162,7 +166,7 @@ void c_network_handler(void* p)
 void s_network_handler(void* p)
 {
   thread_info_map[pthread_self()]=" SERVER NETWORK HANDLER THREAD:";
-  cout<<" s_network_handler \n";
+  PRINT(LOG_DEBUG," s_network_handler \n");
   lsp_server* server=(lsp_server*)p;
   struct sockaddr_storage their_addr;
   uint8_t raw_buf[MAX_PAYLOAD_SIZE],decoded_buf[MAX_PAYLOAD_SIZE];
@@ -175,30 +179,30 @@ void s_network_handler(void* p)
   {
 
 	  addr_len = sizeof their_addr;
-	  cout<<"Waitng in server recv\n";
+	  PRINT(LOG_DEBUG,"Waitng in server recv\n");
 	  if ((numbytes = recvfrom(server->socket_fd, raw_buf, sizeof(raw_buf), 0,
 					  (struct sockaddr *)&their_addr, &addr_len)) == -1) {
 		  perror("recvfrom");
 		  exit(1);
 	  }
 
-	  cout<<"listener: got packet from "<<
+	  PRINT(LOG_DEBUG,"listener: got packet from "<<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s)<<"\n";
+				  s, sizeof s)<<"\n");
 
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
 	  PRINT_PACKET(pkt,"RECEIVE")
-	  //cout<<"Num bytes "<<numbytes<<" len "<<len<<" pkt data size "<<strlen(pkt.data)<<"\n";
+	  //PRINT(LOG_DEBUG,"Num bytes "<<numbytes<<" len "<<len<<" pkt data size "<<strlen(pkt.data)<<"\n";
 	  conn_arg conn_argv;
 	  //conn_argv.conn_id=client->conn_id;
 	  //conn_argv.seq_no=pkt.seq_no;
 
 	  double rand_value = (double(rand() %10)/10);
-	  if(rand_value <= .8)
+	  if(rand_value <= lsp_get_drop_rate())
 	  {
-		  cout<<"PACKET DROPPED_______________ rand value"<<rand_value<<"\n";
+		  PRINT(LOG_DEBUG,"PACKET DROPPED_______________ rand value"<<rand_value<<"\n");
 		  free(pkt.data);
 		  continue;
 	  }
@@ -213,22 +217,22 @@ void s_network_handler(void* p)
 			  {
                             //check same or not TODO
 			    //if(!(memcmp((void*)&their_addr,(void*)&(it->second->addr),addr_len)))
-			//			    cout<<"Same structure";
+			//			    PRINT(LOG_DEBUG,"Same structure";
 			//			    else
-			//			    cout<<"Diff structure";
+			//			    PRINT(LOG_DEBUG,"Diff structure";
 				  if(socket_cmp_addr((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 0)
 				  {
-					  //cout<<" Same Address in Rcvfrom \n";
+					  //PRINT(LOG_DEBUG," Same Address in Rcvfrom \n";
 					  if(socket_cmp_port((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 1)
 					  {
 						  dup_req=1;
-						  cout<<" Duplicate Client Connection Request \n";
+						  PRINT(LOG_DEBUG," Duplicate Client Connection Request \n");
 					  }
 				  }
 			  }
 			  if(!dup_req)
 			  {
-				  cout<<" New connection Request \n";
+				  PRINT(LOG_DEBUG," New connection Request \n");
 				  client_info* new_client  =new client_info;
 				  new_client->conn_id=server->next_free_conn_id++;
 				  new_client->addr=their_addr;
@@ -243,10 +247,10 @@ void s_network_handler(void* p)
 			  conn_argv.conn_id=pkt.conn_id;
 			  conn_argv.seq_no=pkt.seq_no;
 			  client_info* client_conn=server->client_conn_info[pkt.conn_id];
-
+			  client_conn->no_epochs_elapsed=0;
 			  if(get_ack_status(server,client_conn,conn_argv)==true)
 			  {
-				  cout<<"Error:Ack already recvd:Duplicate \n";
+				  PRINT(LOG_DEBUG,"Error:Ack already recvd:Duplicate \n");
 			  }
 			  else
 			  {
@@ -256,7 +260,7 @@ void s_network_handler(void* p)
 		  }
 		  else
 	          {
-			  printf("Error in packet parsing\n");
+			  PRINT(LOG_CRIT,"Error in packet parsing\n");
 		          exit(1);
 		  }
 
@@ -268,15 +272,16 @@ void s_network_handler(void* p)
 		client_info* client_conn=server->client_conn_info[pkt.conn_id];
 
 		client_conn->first_data_rcvd=true;
+		client_conn->no_epochs_elapsed=0;
                 if(client_conn->conn_id != pkt.conn_id)
 		{
-			cout<<" Rcvd Data packet from unknown host \n";
+			PRINT(LOG_DEBUG," Rcvd Data packet from unknown host \n");
 		}
 		else
 		{
 			if(pkt.seq_no <= client_conn->last_seq_no_rcvd)
 			{
-				cout<<" Duplicate or older msg Rcvd \n";
+				PRINT(LOG_DEBUG," Duplicate or older msg Rcvd \n");
 			}
 			else
 			{
@@ -286,6 +291,7 @@ void s_network_handler(void* p)
 				inbox.pkt=pkt;
 				inbox.payload_size=len;
 				server->inbox_queue.putq(inbox);
+				PRINT(LOG_DEBUG," Adding to inbox.Size is "<<server->inbox_queue.size());
 				server_send(server,DATA_ACK,client_conn->conn_id,pkt.seq_no);
 			}
 		}
