@@ -69,9 +69,10 @@ void c_network_handler(void* p)
   int numbytes;
   char s[INET6_ADDRSTRLEN];
   pckt_fmt pkt;
+  int pkt_save=0;
   while(1)
   {
-
+	  pkt_save=0;
 	  addr_len = sizeof their_addr;
 	  PRINT(LOG_DEBUG,"Waitng in client recv\n");
 	  if ((numbytes = recvfrom(client->socket_fd, raw_buf, sizeof(raw_buf), 0,
@@ -149,6 +150,7 @@ void c_network_handler(void* p)
 			}
 			else
 			{
+				pkt_save=1;
 				client->last_seq_no_rcvd=pkt.seq_no;
 				inbox_struct inbox;
 				inbox.pkt=pkt;
@@ -159,7 +161,8 @@ void c_network_handler(void* p)
 		}
 
           }
-
+	if(pkt_save!= 1)
+		free(pkt.data);
   }
 }
 
@@ -175,9 +178,10 @@ void s_network_handler(void* p)
   char s[INET6_ADDRSTRLEN];
   pckt_fmt pkt;
   int dup_req=0;
+  int pkt_save=0;
   while(1)
   {
-
+	  pkt_save=0;
 	  addr_len = sizeof their_addr;
 	  PRINT(LOG_DEBUG,"Waitng in server recv\n");
 	  if ((numbytes = recvfrom(server->socket_fd, raw_buf, sizeof(raw_buf), 0,
@@ -190,7 +194,7 @@ void s_network_handler(void* p)
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
 				  s, sizeof s)<<"\n");
-
+	  
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
 	  PRINT_PACKET(pkt,"RECEIVE")
@@ -215,14 +219,8 @@ void s_network_handler(void* p)
 			  client_info_map::iterator it= server->client_conn_info.begin();
 			  for(;it !=server->client_conn_info.end();it++)
 			  {
-                            //check same or not TODO
-			    //if(!(memcmp((void*)&their_addr,(void*)&(it->second->addr),addr_len)))
-			//			    PRINT(LOG_DEBUG,"Same structure";
-			//			    else
-			//			    PRINT(LOG_DEBUG,"Diff structure";
 				  if(socket_cmp_addr((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 0)
 				  {
-					  //PRINT(LOG_DEBUG," Same Address in Rcvfrom \n";
 					  if(socket_cmp_port((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 1)
 					  {
 						  dup_req=1;
@@ -244,59 +242,77 @@ void s_network_handler(void* p)
 		  }
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
 		  {
-			  conn_argv.conn_id=pkt.conn_id;
-			  conn_argv.seq_no=pkt.seq_no;
-			  client_info* client_conn=server->client_conn_info[pkt.conn_id];
-			  client_conn->no_epochs_elapsed=0;
-			  if(get_ack_status(server,client_conn,conn_argv)==true)
+			  if(server->client_conn_info.find(pkt.conn_id) != server->client_conn_info.end())
 			  {
-				  PRINT(LOG_DEBUG,"Error:Ack already recvd:Duplicate \n");
+				  conn_argv.conn_id=pkt.conn_id;
+				  conn_argv.seq_no=pkt.seq_no;
+				  client_info* client_conn=server->client_conn_info[pkt.conn_id];
+				  client_conn->no_epochs_elapsed=0;
+				  if(get_ack_status(server,client_conn,conn_argv)==true)
+				  {
+					  PRINT(LOG_DEBUG,"Error:Ack already recvd:Duplicate \n");
+				  }
+				  else
+				  {
+					  //(client_conn->conn_map)[conn_argv]=true;     
+					  set_ack_status(server,client_conn,conn_argv,true) ;
+				  }
 			  }
 			  else
 			  {
-				  //(client_conn->conn_map)[conn_argv]=true;     
-				  set_ack_status(server,client_conn,conn_argv,true) ;
+				  PRINT(LOG_DEBUG,"Getting data ack from unknown client conn_id "<<pkt.conn_id);
 			  }
 		  }
 		  else
 	          {
-			  PRINT(LOG_CRIT,"Error in packet parsing\n");
-		          exit(1);
+			  PRINT(LOG_CRIT,"Unknown Packet\n");
+		          //exit(1);
 		  }
 
 		  
 	  
 	  }
-          else //data packet
+	  else //data packet
 	  {
-		client_info* client_conn=server->client_conn_info[pkt.conn_id];
+		  if(server->client_conn_info.find(pkt.conn_id) != server->client_conn_info.end())
+		  {
 
-		client_conn->first_data_rcvd=true;
-		client_conn->no_epochs_elapsed=0;
-                if(client_conn->conn_id != pkt.conn_id)
-		{
-			PRINT(LOG_DEBUG," Rcvd Data packet from unknown host \n");
-		}
-		else
-		{
-			if(pkt.seq_no <= client_conn->last_seq_no_rcvd)
-			{
-				PRINT(LOG_DEBUG," Duplicate or older msg Rcvd \n");
-			}
-			else
-			{
-				client_conn->last_seq_no_rcvd=pkt.seq_no;
-				//client_conn->inbox_queue.push(pkt);
-				inbox_struct inbox;
-				inbox.pkt=pkt;
-				inbox.payload_size=len;
-				server->inbox_queue.putq(inbox);
-				PRINT(LOG_DEBUG," Adding to inbox.Size is "<<server->inbox_queue.size());
-				server_send(server,DATA_ACK,client_conn->conn_id,pkt.seq_no);
-			}
-		}
+			  client_info* client_conn=server->client_conn_info[pkt.conn_id];
+
+			  client_conn->first_data_rcvd=true;
+			  client_conn->no_epochs_elapsed=0;
+			  if(client_conn->conn_id != pkt.conn_id)
+			  {
+				  PRINT(LOG_DEBUG," Rcvd Data packet from unknown host \n");
+			  }
+			  else
+			  {
+				  if(pkt.seq_no <= client_conn->last_seq_no_rcvd)
+				  {
+					  PRINT(LOG_DEBUG," Duplicate or older msg Rcvd \n");
+				  }
+				  else
+				  {
+					  pkt_save=1;
+					  client_conn->last_seq_no_rcvd=pkt.seq_no;
+					  //client_conn->inbox_queue.push(pkt);
+					  inbox_struct inbox;
+					  inbox.pkt=pkt;
+					  inbox.payload_size=len;
+					  server->inbox_queue.putq(inbox);
+					  PRINT(LOG_DEBUG," Adding to inbox.Size is "<<server->inbox_queue.size());
+					  server_send(server,DATA_ACK,client_conn->conn_id,pkt.seq_no);
+				  }
+			  }
+		  }
+		  else
+		  {
+			  PRINT(LOG_DEBUG,"Getting data ack from unknown client conn_id "<<pkt.conn_id);
+		  }
+
           }
-
+	if(pkt_save != 1)
+		free(pkt.data);
   }
 }
 

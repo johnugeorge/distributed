@@ -162,6 +162,7 @@ int last_seq_no_rcvd;
 int no_epochs_elapsed;
 client_info()
 {
+last_pckt_sent.data=NULL;
 seq_no=0;
 conn_state=CONN_WAIT;
 conn_id=0;
@@ -194,6 +195,7 @@ int last_seq_no_rcvd;
 int no_epochs_elapsed;
 lsp_client()
 {
+last_pckt_sent.data=NULL;
 no_epochs_elapsed=0;
 conn_state=CONN_WAIT;
 seq_no=0;
