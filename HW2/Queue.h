@@ -3,13 +3,14 @@
 
 #include <queue>
 
-
 template <typename T>
 class Queue
 {
 	public:
 
-		Queue() { }
+		Queue() {
+			pthread_mutex_init(&lock, NULL);
+		}
 
 		int putq(const T &aObj) {
 			pthread_mutex_lock(&lock);
