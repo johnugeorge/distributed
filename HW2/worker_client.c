@@ -17,6 +17,9 @@ void findReverseHash(string hash_str,string lower,string upper)
 
 	while(!found && !end)
 	{
+		if(start.compare(upper) == 0)
+			end=1;
+
 		if(start[last_char_pos]<='z')
 		{
 			//cout<<"string "<<start<<"\n"; 
@@ -148,7 +151,7 @@ int main(int argc, char** argv)
 	{
 
 		std::cout<<" Disconnected \n";
-	        exit(0);
+		break;
 	}
 	             
 	//puts((const char*)buffer);
