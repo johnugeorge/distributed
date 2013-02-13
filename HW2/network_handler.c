@@ -137,7 +137,6 @@ void c_network_handler(void* p)
           else //data packet
 	  {
 
-		client->first_data_rcvd=true;
                 if(client->conn_id != pkt.conn_id)
 		{
 			PRINT(LOG_DEBUG," Rcvd Data packet from unknown host \n");
@@ -151,6 +150,7 @@ void c_network_handler(void* p)
 			else
 			{
 				pkt_save=1;
+				client->first_data_rcvd=true;
 				client->last_seq_no_rcvd=pkt.seq_no;
 				inbox_struct inbox;
 				inbox.pkt=pkt;

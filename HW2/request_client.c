@@ -7,6 +7,18 @@ void handle_read(uint8_t* buffer)
 {
 	cout<<" Message Type "<<buffer[0]<<"\n";
 
+   if(buffer[0] == 'f')
+   {
+
+   }
+   else if (buffer[0] == 'x')
+   {
+
+   }
+   else
+   {
+
+   }
 
 }
 

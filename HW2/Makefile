@@ -4,15 +4,15 @@ TARGET = worker request sample_client sample_server
 
 CFLAGS += -g -I/opt/local/include
 #LDFLAGS += -g -lpthread
-LDFLAGS += -g -lprotobuf-c -lpthread -L/opt/local/lib
+LDFLAGS += -g -lprotobuf-c -lpthread -L/opt/local/lib -L/usr/lib -lssl -lcrypto
 
 all:	$(TARGET)
 
 sample_client: 	lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o sample_client.c -o $@ $(LDFLAGS)
-worker: 	lsp.o  
+worker: worker_client.c	lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o worker_client.c -o $@ $(LDFLAGS)
-request: 	lsp.o  
+request: request_client.c lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o request_client.c -o $@ $(LDFLAGS)
 
 
