@@ -100,7 +100,7 @@ void c_network_handler(void* p)
 		  client->no_epochs_elapsed=0;
 	  } 
 	  double rand_value = (double(rand() %10)/10);
-	  if(rand_value <= lsp_get_drop_rate())
+	  if(rand_value < lsp_get_drop_rate())
 	  {
 		  PRINT(LOG_DEBUG,"PACKET DROPPED_______________ rand value"<<rand_value<<"\n");
 		  free(pkt.data);
@@ -204,7 +204,7 @@ void s_network_handler(void* p)
 	  //conn_argv.seq_no=pkt.seq_no;
 
 	  double rand_value = (double(rand() %10)/10);
-	  if(rand_value <= lsp_get_drop_rate())
+	  if(rand_value < lsp_get_drop_rate())
 	  {
 		  PRINT(LOG_DEBUG,"PACKET DROPPED_______________ rand value"<<rand_value<<"\n");
 		  free(pkt.data);
@@ -263,10 +263,22 @@ void s_network_handler(void* p)
 				  PRINT(LOG_DEBUG,"Getting data ack from unknown client conn_id "<<pkt.conn_id);
 			  }
 		  }
+		  else if((pkt.conn_id != 0 ) && (pkt.seq_no == 0))//client might not have reccived any data msg
+		  {
+			  if(server->client_conn_info.find(pkt.conn_id) != server->client_conn_info.end())
+			  {
+				  client_info* client_conn=server->client_conn_info[pkt.conn_id];
+				  if(client_conn->last_pckt_sent.data == NULL)
+				  {
+					  PRINT(LOG_DEBUG,"Resetting Epoch Timers\n");
+					  client_conn->no_epochs_elapsed=0;
+				  }
+			  }
+		  }
 		  else
-	          {
+		  {
 			  PRINT(LOG_CRIT,"Unknown Packet\n");
-		          //exit(1);
+			  //exit(1);
 		  }
 
 		  

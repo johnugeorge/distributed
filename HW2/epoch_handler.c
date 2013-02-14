@@ -55,6 +55,11 @@ void c_handle_epoch(lsp_client* client)
     PRINT(LOG_DEBUG,"Client epoch timer:: Resending CONN_REQ"<<std::endl); 
     client_send(client,CONN_REQ);
   }
+  else if((client->conn_state == CONN_REQ_ACK_RCVD) && !(client->last_seq_no_rcvd))
+  {
+    PRINT(LOG_DEBUG,"Client epoch timer:: No data Messages have been rcvd. Hence sending ACK with seq_no 0\n");
+    client_send(client,DATA_ACK,0);
+  }
   else
   {
 	if(client->last_seq_no_rcvd)
