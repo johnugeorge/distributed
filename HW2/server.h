@@ -3,27 +3,27 @@
 #include <vector>
 #include "server_utils.h"
 
-#define DIVISIONS 5
-
 using namespace std;
 
-class Server
+class ServerHandler
 {
   private:
     map<int, int> worker_task;
     map<int, int> worker_to_request;
-    map<int, vector<WorkerTask>& > request_divided;
-    map<int, vector<int>& > sub_tasks_remaining;
+    map<int, vector<WorkerTask> > request_divided;
+    map<int, vector<int> > sub_tasks_remaining;
     vector<int> requests_in_progress;
     vector<int> free_workers;
     vector<int> request_cache;
     map<int, string> request_store;
+    
+    int divisions;
     string[] sub_tasks;
 
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
       //=== remove the assigned subtask
-      map<int, vector<WorkerTask>& >::iterator it1 = request_divided.find(req_id);
+      map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
       vector<WorkerTask> v1 = it1->second;
       vector<WorkerTask>::iterator vit1 = v1.begin();
       while(vit1 != v1.end())
@@ -36,7 +36,7 @@ class Server
       v1.erase(vit1);
 
       //=== remove the entry from sub tasks remaining
-      map<int, vector<int>& >::iterator it2 = sub_tasks_remaining.find(req_id);
+      map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       vector<int> v2 = it2->second;
       vector<int>::iterator vit2 = v2.begin();
       while(vit2 != v2.end())
@@ -85,7 +85,7 @@ class Server
       if(free_workers.empty())
       {
         //=== remove the assigned subtask
-        map<int, vector<WorkerTask>& >::iterator it1 = request_divided.find(req_id);
+        map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
         vector<WorkerTask> v1 = it1->second;
         vector<WorkerTask>::iterator vit1 = v1.begin();
         while(vit1 != v1.end())
@@ -97,10 +97,15 @@ class Server
         v1.erase(vit1);
         
         //=== now put it back as a pending task
-        map<int, vector<int>& >::iterator it2 = sub_tasks_remaining.find(req_id);
+        map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
         vector<int> v2 = it2->second;
         v2.push_back(task_num);
       }
+    }
+
+    void init_divisions(int pwd_length)
+    {
+      //calculate the divisions
     }
 
   public:
@@ -110,9 +115,19 @@ class Server
     void handle_result(int worker_id, int result);
     void handle_dead_client(int conn_id);
     void register_new_task(int worker_id, int req_id, int task);
-    bool is_task_available();
+    //bool is_task_available();
     void cache_new_req(int req_id, string request);
+    void handle();
 };
+
+
+enum TaskResult
+{
+  FAIL,
+  PASS,
+  NO_RESULT
+};
+
 
 class WorkerTask
 {
@@ -121,12 +136,19 @@ class WorkerTask
     int conn_id;
     int task_num;
     TaskResult result;
+
+    WorkerTask(cid, tn, res)
+    {
+      conn_id = cid;
+      task_num = tn;
+      result = res;
+    }
+
+    WorkerTask(cid, tn)
+    {
+      conn_id = cid;
+      task_num = tn;
+      result = TaskResult::NO_RESULT;
+    }
 };
 
-enum TaskResult
-{
-  FAIL,
-  PASS,
-  NO_RESULT
-};
-}

@@ -44,7 +44,7 @@ bool inMap(map<K, V>& m, K key)
 
 class Test1
 {
-  map<int, vector<int>& > m;
+  map<int, vector<int> > m;
 
   public:
   Test1()
@@ -52,26 +52,78 @@ class Test1
   }
   
   void add_el(int r, int w)
-  {
-    map<int, vector<int>& >::iterator it = m.begin();
+  { 
+    if(m.empty())
+    {
+      vector<int> v;
+      v.push_back(w);
+      m[r].swap(v);
+      //m.insert(pair<int, vector<int> >(r, v));
+      cout<<"done"<<endl;
+      //cout<<"vec size is "<<m[r].size();
+      return;
+    }
+
+    map<int, vector<int> >::iterator it = m.begin();
     it = m.find(r);
 
     if(it != m.end())
+    {
       (it->second).push_back(w);
+      cout<<"done 1"<<endl;
+      //cout<<"vec size is "<<m[r].size();
+    }
     else
-      m[r].push_back(w);
+    {
+      vector<int> v;
+      v.push_back(w);
+      //m.insert(pair<int, vector<int> >(r, v));
+      m[r].swap(v);
+      cout<<"done33"<<endl;
+      //cout<<"vec size is "<<m[r].size();
+    }
+  }
+
+  map<int, vector<int> >& getMap()
+  {
+    return m;
+  }
+
+  void setMap(map<int, vector<int> >& mp)
+  {
+    m = mp;
+  }
+
+  void modify(int r, int val)
+  {
+    vector<int> v = m[r];
+    v[0] = val;
+    m[r].swap(v);
+  }
+
+  void modify2(vector<int>& v)
+  {
+    //size_t i = 0;
+    //for(; i<v.size(); i++)
+    //  v.at(i)++;
+    v.push_back(44);
   }
 
   void print()
   {
-    map<int, vector<int>& >::iterator it = m.begin();
-
+    map<int, vector<int> >::iterator it = m.begin();
+    
+    cout<<"printing"<<endl;
     while(it != m.end())
     {
+      cout<<"hi"<<endl;
       cout<<"key: "<<it->first<<",,,";
+      cout<<"abcd"<<endl;
       vector<int> v = it->second;
-      for(int i=0; i<v.size(); i++)
-        cout<<v[i]<<" ";
+      cout<<"size: "<<v.size()<<endl;
+      for(size_t i=0; i<v.size(); i++)
+        cout<<v.at(i)<<" ";
+      cout<<endl;
       it++;
     }
   }
@@ -97,6 +149,16 @@ int main(void)
   Test1* t = new Test1();
   t->add_el(1, 10);
   t->add_el(1, 11);
+  t->print();
+  t->modify(1, 30);
+  t->print();
+  map<int, vector<int> >& m = t->getMap();
+  vector<int>& v1 = m[1];
+  cout<<"vec size: "<<v1.size();
+  t->modify2(v1);
+  cout<<"vec size: "<<v1.size();
+  m[1].swap(v1);
+  //t->setMap(m);
   t->print();
   return 0;
 }
