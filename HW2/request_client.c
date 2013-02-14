@@ -72,8 +72,8 @@ int main(int argc, char** argv)
 	else if(numbytes == -1)
 	{
 
-		std::cout<<" Server disconnected.Hence shutting down \n";
-//	        exit(0);
+		std::cout<<" Disconnected \n";
+		break;
 	}
 	             
 	//puts((const char*)buffer);
