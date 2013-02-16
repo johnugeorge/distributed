@@ -1,6 +1,6 @@
 CC = g++
 
-TARGET = worker request client server
+TARGET = worker request sample_client sample_server server
 
 CFLAGS += -g -I/opt/local/include
 #LDFLAGS += -g -lpthread
@@ -8,8 +8,10 @@ LDFLAGS += -g -lprotobuf-c -lpthread -L/opt/local/lib -L/usr/lib -lssl -lcrypto
 
 all:	$(TARGET)
 
-client: 	lsp.o  
+sample_client: 	lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o sample_client.c -o $@ $(LDFLAGS)
+sample_server: 	lsp.o  
+	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o sample_server.c -o $@ $(LDFLAGS)
 worker: worker_client.c	lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o worker_client.c -o $@ $(LDFLAGS)
 request: request_client.c lsp.o  
@@ -17,8 +19,8 @@ request: request_client.c lsp.o
 
 
 
-server: 	lsp.o 
-	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o sample_server.c -o $@ $(LDFLAGS)
+server: 	server.cpp lsp.o
+	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o server.cpp -o $@ $(LDFLAGS)
 
 lsp.o: epoch_handler.o network_handler.o lspmessage.pb-c.o 
 

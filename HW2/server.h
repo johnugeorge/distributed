@@ -2,8 +2,39 @@
 #include <string>
 #include <vector>
 #include "server_utils.h"
-
+#include "lsp.h"
+//#include "template_test.h"
 using namespace std;
+
+typedef enum TaskResult
+{
+  FAIL,
+  PASS,
+  NO_RESULT
+}TaskResult;
+
+class WorkerTask
+{
+  /* everything public to ensure ease of use */
+  public:
+    int conn_id;
+    int task_num;
+    TaskResult result;
+
+    WorkerTask(int cid, int tn,TaskResult res)
+    {
+      conn_id = cid;
+      task_num = tn;
+      result = res;
+    }
+
+    WorkerTask(int cid,int tn)
+    {
+      conn_id = cid;
+      task_num = tn;
+      result = NO_RESULT;
+    }
+};
 
 class ServerHandler
 {
@@ -18,7 +49,7 @@ class ServerHandler
     map<int, string> request_store;
     
     int divisions;
-    string[] sub_tasks;
+    //string[] sub_tasks;
 
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
@@ -26,26 +57,32 @@ class ServerHandler
       map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
       vector<WorkerTask> v1 = it1->second;
       vector<WorkerTask>::iterator vit1 = v1.begin();
+      int task_num=0;
       while(vit1 != v1.end())
       {
-        if((*vit1).worker_id == worker_id)
-          break;
-        vit1++;
+	      if((*vit1).conn_id == worker_id)
+	      {
+		      task_num = (*vit1).task_num;
+		      v1.erase(vit1);
+		      break;
+	      }
+	      vit1++;
       }
-      int task_num = (*vit1).task_num;
-      v1.erase(vit1);
-
+      if(vit1 == v1.end())cout<<"worker Id Not found \n";
       //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       vector<int> v2 = it2->second;
       vector<int>::iterator vit2 = v2.begin();
       while(vit2 != v2.end())
       {
-        if((*vit2) == task_num)
-          break;
-        vit2++;
+	      if((*vit2) == task_num)
+	      {
+		      v2.erase(vit2);
+		      break;
+	      }
+	      vit2++;
       }
-      v2.erase(vit2);
+      if(vit2 == v2.end())cout<<"task num Not found \n";
       bool last_subtask = false;
       if(v2.empty())
         last_subtask = true;
@@ -55,47 +92,52 @@ class ServerHandler
       worker_to_request.erase(worker_id);
 
       //=== do more things if this was the last remaining subtask or a success
-      if(last_subtask || TaskResult == PASS)
+      if(last_subtask || result == PASS)
       {
         vector<int>::iterator vit3 = requests_in_progress.begin();
-        while(vit3 != requests_in_progress.end())
-        {
-          if((*vit3) == req_id)
-            break;
-          vit3++;
-        }
+	while(vit3 != requests_in_progress.end())
+	{
+		if((*vit3) == req_id)
+		{
 
-        if(vit != requests_in_progress.end())
-          requests_in_progress.erase(vit3);
+			requests_in_progress.erase(vit3);
+			break;
+		}
+		vit3++;
+	}
+
+        if(vit3 == requests_in_progress.end())cout<<" Request Id not found in requests_in_progress \n";
 
         //completely wipe out the entry of this request in requests assigned 
         //and sub tasks remaining
-        requests_divided.erase(it1);
+        request_divided.erase(it1);
         sub_tasks_remaining.erase(it2);
       }
     }
 
-    void restore_subtask(int req_id, int prev_worker_id, int task_num)
+    void restore_subtask(int req_id, int prev_worker_id)
     {
       /*
        * this method restores a subtask that was previously assigned to a worker; due to the death of the worker
        */
 
-      int task_num = worker_task[req_id];
+      int task_num = worker_task[prev_worker_id];
       if(free_workers.empty())
       {
         //=== remove the assigned subtask
         map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
         vector<WorkerTask> v1 = it1->second;
         vector<WorkerTask>::iterator vit1 = v1.begin();
-        while(vit1 != v1.end())
-        {
-          if((*vit1).worker_id == worker_id)
-            break;
-          vit1++;
-        }
-        v1.erase(vit1);
-        
+	while(vit1 != v1.end())
+	{
+		if((*vit1).conn_id == prev_worker_id)
+		{
+			v1.erase(vit1);
+			break;
+		}
+		vit1++;
+	}
+        if(vit1 == v1.end())cout<<" prev worker Id Not found \n";
         //=== now put it back as a pending task
         map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
         vector<int> v2 = it2->second;
@@ -109,11 +151,11 @@ class ServerHandler
     }
 
   public:
-    Server();
-    void handle_crack(int req_id, string req);
-    void handle_join(int worker_id);
-    void handle_result(int worker_id, int result);
-    void handle_dead_client(int conn_id);
+    ServerHandler();
+    void handle_crack(lsp_server*,int req_id, uint8_t* req);
+    void handle_join(lsp_server*,int worker_id);
+    void handle_result(lsp_server* svr,int worker_id, TaskResult result);
+    void handle_dead_client(lsp_server*,int conn_id);
     void register_new_task(int worker_id, int req_id, int task);
     //bool is_task_available();
     void cache_new_req(int req_id, string request);
@@ -121,34 +163,6 @@ class ServerHandler
 };
 
 
-enum TaskResult
-{
-  FAIL,
-  PASS,
-  NO_RESULT
-};
 
 
-class WorkerTask
-{
-  /* everything public to ensure ease of use */
-  public:
-    int conn_id;
-    int task_num;
-    TaskResult result;
-
-    WorkerTask(cid, tn, res)
-    {
-      conn_id = cid;
-      task_num = tn;
-      result = res;
-    }
-
-    WorkerTask(cid, tn)
-    {
-      conn_id = cid;
-      task_num = tn;
-      result = TaskResult::NO_RESULT;
-    }
-};
 

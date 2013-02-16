@@ -24,6 +24,10 @@ void handle_read(uint8_t* buffer)
 
 int main(int argc, char** argv) 
 {
+	lsp_set_drop_rate(_DROP_RATE);
+	lsp_set_epoch_cnt(_EPOCH_CNT);
+	lsp_set_epoch_lth(_EPOCH_LTH);
+	srand(12345);
 	uint8_t buffer[MAX_PAYLOAD_SIZE];	
 	if(argc != 4 )
 	{

@@ -24,6 +24,7 @@ int main(int argc, char** argv)
 		else if (returned_id !=0 && bytes == -1)
 		{
 		        std::cout<<" client with conn_id "<<returned_id<<" shuts down "<<payload<<"bytes "<<bytes<<"\n";
+			lsp_server_close(myserver,returned_id);
 		//	exit(0);
 
 		}

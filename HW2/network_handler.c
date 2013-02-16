@@ -84,7 +84,7 @@ void c_network_handler(void* p)
 	  PRINT(LOG_DEBUG,"client: got packet from " <<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s)<<" \n");
+				  s, sizeof s)<<" numbytes "<<numbytes<<" \n");
 
 	
   	  pkt.data=(char*)malloc(numbytes);
@@ -193,7 +193,7 @@ void s_network_handler(void* p)
 	  PRINT(LOG_DEBUG,"listener: got packet from "<<
 			  inet_ntop(their_addr.ss_family,
 				  get_in_addr((struct sockaddr *)&their_addr),
-				  s, sizeof s)<<"\n");
+				  s, sizeof s)<<" numbytes "<<numbytes<<"\n");
 	  
   	  pkt.data=(char*)malloc(numbytes);
 	  int len=message_decode(numbytes,raw_buf,pkt);
