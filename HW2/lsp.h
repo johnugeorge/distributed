@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <vector>
 #include "Queue.h"
 #include "util.h"
 #include <map>
@@ -38,7 +39,7 @@ typedef enum loglevels{
 }loglevels;
 
 extern int loglevel;
-//#define cout cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
 
 #define PRINT(a,b) \
 		if(a>=loglevel) \
@@ -236,14 +237,14 @@ inline void initialize_configuration()
 {
   if(!config.empty())
   {
-    std::cout<<"Initial configuration already set."<<std::endl;
+    PRINT(LOG_INFO, "Initial configuration already set.\n");
     return;
   }
 
   std::ifstream read;
   std::string file_name = "lsp.conf";
   read.open(file_name.c_str());
-  std::cout<<"Reading configuration..."<<std::endl;
+  PRINT(LOG_INFO, "Reading configuration...\n");
   std::string s;
   while(std::getline(read, s)) config[s.substr(0, s.find('='))]=s.substr(s.find('=')+1);
 
@@ -262,6 +263,46 @@ inline void initialize_configuration()
       lsp_set_log_level(3);
   }
 }
+
+
+/*
+ * generic print function for a vector
+ */
+template<typename T>
+void print_vector(std::vector<T>& v)
+{
+  if(v.empty()) return;
+
+  typename std::vector<T>::iterator it = v.begin();
+  PRINT(LOG_INFO, "[");
+  while(it != v.end())
+  {
+    PRINT(LOG_INFO, (*it)<<" ");
+    it++;
+  }
+  
+  PRINT(LOG_INFO, "]");
+} 
+
+/*
+ * generic print function for map<K, vector<V> >
+ */
+template<typename K, typename V>
+void print_vector_map(std::map<K, std::vector<V> >& m)
+{
+  if(m.empty()) return;
+
+  typename std::map<K, std::vector<V> >::iterator it = m.begin();
+  while(it != m.end())
+  {
+    std::vector<V>& v = it->second;
+    PRINT(LOG_INFO, it->first<<" = ");
+    print_vector(v);
+    PRINT(LOG_INFO, "\n");
+    it++;
+  }   
+}
+
 
 
 lsp_server* lsp_server_create(int port);

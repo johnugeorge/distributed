@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	uint8_t buffer[MAX_PAYLOAD_SIZE];	
 	if(argc != 4 )
 	{
-		std::cout<<" Wrong Arguments. Usage ./request host:port hash len\n";
+		PRINT(LOG_INFO, " Wrong Arguments. Usage ./request host:port hash len\n");
 		exit(0);
 	}
 	string upper="";
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		std::cout<<" Wrong Arguments. Usage ./request host:port hash len\n";
+		PRINT(LOG_INFO, " Wrong Arguments. Usage ./request host:port hash len\n");
 		exit(0);
 	}
 	cout<<host<<" "<<port<<" "<<hash<<" "<<length<<"\n";
@@ -69,14 +69,14 @@ int main(int argc, char** argv)
 	int numbytes=(lsp_client_read(myclient, buffer));
 	if(numbytes > 0)
 	{
-		std::cout<<" buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n";
+		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
 		handle_read(buffer);
 		bzero(buffer,MAX_PAYLOAD_SIZE);
 	}
 	else if(numbytes == -1)
 	{
 
-		std::cout<<" Disconnected \n";
+		PRINT(LOG_INFO, " Disconnected \n");
 		break;
 	}
 	             

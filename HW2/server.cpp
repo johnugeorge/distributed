@@ -2,17 +2,16 @@
 #include <map>
 #include <string>
 #include <queue>
+#include <string.h>
 #include "server.h"
 
 using namespace std;
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
 
-
 ServerHandler::ServerHandler()
 {
   divisions = 13;
 }
-
 
 /*
  * method to handle new crack requests
@@ -33,6 +32,7 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   }
 
   int new_req = request_cache.front();
+  PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache\n");
   string h = request_store[new_req]; //can potentially cause a bug
   int i = 0;
   bool success = false;
@@ -44,12 +44,18 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   while(!free_workers.empty() || i >= sub_tasks_remaining[new_req].size())
   {
     int w = free_workers.front(); //this is also a pop
-    //lsp_server_write(svr, req, sub_tasks[i], h);
+    int task_num = sub_tasks_remaining[new_req].front();
+    //string sub = sub_task_store[task_num];
+    //vector<string> spl = strsplit(sub, "-");
+    //string lower = spl[0];
+    //string upper = spl[1];
+    const char* pl = create_crack_payload(h, task_num, sub_task_store);
+    PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker <<"<<w<<"\n");
+    lsp_server_write(svr, (void*)pl, strlen(pl)+1, w);
     register_new_task(w, req_id, i);
     i++;
   }
 }
-
 
 /*
  * method to handle new join requests
@@ -220,7 +226,7 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 {
   if(returned_id != 0 && bytes > 0)
   {
-    std::cout<<" conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<" strlen "<<strlen((char*)payload)<<"\n";
+    PRINT(LOG_INFO, " conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<" strlen "<<strlen((char*)payload)<<"\n");
     if(payload[0] == 'c')
     {
       svr_handler->handle_crack(myserver, returned_id, payload);
@@ -237,7 +243,7 @@ void decode_and_dispatch(ServerHandler* svr_handler,
   }
   else if(returned_id != 0 && bytes == -1)
   {
-    std::cout<<" client with conn_id "<<returned_id<<" shuts down "<<payload<<"bytes "<<bytes<<"\n";
+    PRINT(LOG_INFO, " client with conn_id "<<returned_id<<" shuts down "<<payload<<"bytes "<<bytes<<"\n");
     svr_handler->handle_dead_client(myserver, returned_id);
     lsp_server_close(myserver,returned_id);
   }
@@ -267,7 +273,5 @@ int main(int argc, char** argv)
     bzero(payload, MAX_PAYLOAD_SIZE);
     int bytes = lsp_server_read(myserver, payload, &returned_id);
     decode_and_dispatch(svr_handler,myserver, payload,returned_id,bytes);
-   
-     
   }
 }

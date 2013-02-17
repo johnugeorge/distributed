@@ -22,14 +22,14 @@ int main(int argc, char** argv)
 	int numbytes=(lsp_client_read(myclient, buffer));
 	if(numbytes > 0)
 	{
-		std::cout<<" buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n";
+		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
 		bzero(buffer,MAX_PAYLOAD_SIZE);
 
 	}
 	else if(numbytes == -1)
 	{
 
-		std::cout<<" Server disconnected.Hence shutting down \n";
+		PRINT(LOG_INFO, " Server disconnected.Hence shutting down \n");
 //	        exit(0);
 	}
 	             

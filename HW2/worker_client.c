@@ -120,7 +120,7 @@ int main(int argc, char** argv)
 	uint8_t buffer[MAX_PAYLOAD_SIZE];	
 	if(argc != 2 )
 	{
-		std::cout<<" Wrong Arguments. Usage ./worker host:port\n";
+		PRINT(LOG_INFO, " Wrong Arguments. Usage ./worker host:port\n");
 		exit(0);
 	}
 
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		std::cout<<" Wrong Arguments. Usage ./worker host:port \n";
+		PRINT(LOG_INFO, " Wrong Arguments. Usage ./worker host:port \n");
 	}
 	cout<<host<<" "<<port<<"\n";
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 	int numbytes=(lsp_client_read(myclient, buffer));
 	if(numbytes > 0)
 	{
-		std::cout<<" buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n";
+		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
 		handle_read(buffer);
 		bzero(buffer,MAX_PAYLOAD_SIZE);
 
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 	else if(numbytes == -1)
 	{
 
-		std::cout<<" Disconnected \n";
+		PRINT(LOG_INFO, " Disconnected \n");
 		break;
 	}
 	             

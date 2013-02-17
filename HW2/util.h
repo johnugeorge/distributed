@@ -11,14 +11,14 @@ inline const char*	getTimeStr(void)
 	memset((void *)timeStr,'\0',TIME_STR_MAX_SIZE);
 	tm *tb=NULL;
 	if ( (tb = localtime(&t)) == NULL ) {
-		std::cout << "ERROR: In getTimeStr tb is NULL\n";
+	        //PRINT(LOG_INFO, "ERROR: In getTimeStr tb is NULL\n");
 		return timeStr;
 	}
 	strftime(timeStr,TIME_STR_MAX_SIZE,log_date_format,tb);
 	struct timeval tv;
 
 	if (gettimeofday(&tv,NULL) < 0) {
-		std::cout << "ERROR: In getTimeStr gettimeofday failedL\n";
+		//PRINT(LOG_INFO, "ERROR: In getTimeStr gettimeofday failedL\n");
 		return timeStr;
 	}
 
