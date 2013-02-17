@@ -39,14 +39,15 @@ typedef enum loglevels{
 }loglevels;
 
 extern int loglevel;
-#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+//#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+#define cout std::cout
+
+#define COUT cout
 
 #define PRINT(a,b) \
 		if(a>=loglevel) \
-		cout<<b<<std::endl;
+		cout<<b<<std::endl<<std::flush;
 
-
-#define COUT cout
 
 #define PRINT_PACKET(pkt,dir) \
 	PRINT(LOG_DEBUG, "==========START=======================\n"); \
@@ -274,14 +275,14 @@ void print_vector(std::vector<T>& v)
   if(v.empty()) return;
 
   typename std::vector<T>::iterator it = v.begin();
-  PRINT(LOG_INFO, "[");
+  cout<<"[";
   while(it != v.end())
   {
-    PRINT(LOG_INFO, (*it)<<" ");
+    cout<<(*it)<<" ";
     it++;
   }
   
-  PRINT(LOG_INFO, "]");
+  cout<<"]"<<std::endl;
 } 
 
 /*
@@ -296,13 +297,28 @@ void print_vector_map(std::map<K, std::vector<V> >& m)
   while(it != m.end())
   {
     std::vector<V>& v = it->second;
-    PRINT(LOG_INFO, it->first<<" = ");
+    cout<<it->first<<" = ";
     print_vector(v);
-    PRINT(LOG_INFO, "\n");
+    cout<<std::endl;
     it++;
   }   
 }
 
+/*
+ * generic print function for map<K, vector<V> >
+ */
+template<typename K, typename V>
+void print_map(std::map<K, V>& m)
+{
+  if(m.empty()) return;
+
+  typename std::map<K, V>::iterator it = m.begin();
+  while(it != m.end())
+  {
+    cout<<it->first<<" = "<<it->second<<std::endl;
+    it++;
+  }
+}
 
 
 lsp_server* lsp_server_create(int port);

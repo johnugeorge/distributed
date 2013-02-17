@@ -4,7 +4,7 @@
 
 using namespace std;
 
-void findReverseHash(string hash_str,string lower,string upper)
+string findReverseHash(string hash_str,string lower,string upper)
 {
 	string start=lower;
 	int last_char_pos=start.length()-1;
@@ -69,17 +69,24 @@ void findReverseHash(string hash_str,string lower,string upper)
 		}
 
 	}
+        
+        string res;
 	if(found==1)
 	{
+                res.append("f ");
+                res.append(start);
 		cout<<" Found: "<<start<<"\n";
 	}
 	else
 	{
+                res.append("x");
 		cout<<" Not Found \n";
 
 	}
+
+        return res;
 }
-void handle_read(uint8_t* buffer)
+string handle_read(uint8_t* buffer)
 {
 cout<<" Message Type "<<buffer[0]<<"\n";
 vector<string> tokens;
@@ -103,10 +110,10 @@ if(buffer[0]=='c')
 else
 {
 	cout<<"Unknown Message type "<<buffer[0]<<" for worker \n";
-	return;
+	return "";
 }
 	 cout<<tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]<<"\n";
-findReverseHash(tokens[1],tokens[2],tokens[3]);
+return findReverseHash(tokens[1],tokens[2],tokens[3]);
 }
 
 
@@ -148,9 +155,11 @@ int main(int argc, char** argv)
 	if(numbytes > 0)
 	{
 		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
-		handle_read(buffer);
+		string res = handle_read(buffer);
 		bzero(buffer,MAX_PAYLOAD_SIZE);
-
+                
+                if(res == "") continue;
+                lsp_client_write(myclient, (uint8_t*)res.c_str(), strlen(res.c_str()));
 	}
 	else if(numbytes == -1)
 	{

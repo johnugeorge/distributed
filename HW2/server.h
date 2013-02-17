@@ -3,6 +3,7 @@
 #include <vector>
 #include "server_utils.h"
 #include "lsp.h"
+
 using namespace std;
 
 typedef enum TaskResult
@@ -177,7 +178,7 @@ class ServerHandler
     ServerHandler();
     void handle_crack(lsp_server*, int req_id, uint8_t* req);
     void handle_join(lsp_server*, int worker_id);
-    void handle_result(lsp_server* svr, int worker_id, TaskResult result);
+    void handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result);
     void handle_dead_client(lsp_server*, int conn_id);
     void register_new_task(int worker_id, int req_id, int task);
     //bool is_task_available();

@@ -24,10 +24,14 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   string lower = spl[2];
   init_subtask_store(lower.length());
 
+  PRINT(LOG_INFO, "Below is the subtask store: ");
+  print_map(sub_task_store); 
+
   cache_new_req(req_id, req);
   if(free_workers.empty())
   {
     /* all we can do is cache the request and return */
+    PRINT(LOG_INFO, "No workers available. Request cached.");
     return;
   }
 
@@ -40,19 +44,25 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   //=== init some data structures
   sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, new_sub_task_list(&divisions)));  
   requests_in_progress.push_back(new_req);
+  PRINT(LOG_INFO,"Current reqs in progress at the server: ");
+  print_vector(requests_in_progress);
+  cout<<"For request: "<<new_req<<endl;
+  cout<<"the remaining sub_tasks are: ";
+  print_vector(sub_tasks_remaining[new_req]);
+  cout<<endl;
 
   while(!free_workers.empty() || i >= sub_tasks_remaining[new_req].size())
   {
     int w = free_workers.front(); //this is also a pop
     int task_num = sub_tasks_remaining[new_req].front();
-    //string sub = sub_task_store[task_num];
-    //vector<string> spl = strsplit(sub, "-");
-    //string lower = spl[0];
-    //string upper = spl[1];
     const char* pl = create_crack_payload(h, task_num, sub_task_store);
-    PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker <<"<<w<<"\n");
-    lsp_server_write(svr, (void*)pl, strlen(pl)+1, w);
-    register_new_task(w, req_id, i);
+    PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<strlen(pl)+1);
+    lsp_server_write(svr, (void*)pl, strlen(pl), w);
+    register_new_task(w, new_req, task_num);
+    cout<<"After sending to worker, For request: "<<new_req<<endl;
+    cout<<"the remaining sub_tasks are: ";
+    print_vector(sub_tasks_remaining[new_req]);
+    cout<<endl;
     i++;
   }
 }
@@ -93,7 +103,7 @@ void ServerHandler::handle_join(lsp_server* svr,int worker_id)
 /*
  * method to handle the results sent back by workers
  */
-void ServerHandler::handle_result(lsp_server* svr,int worker_id, TaskResult result)
+void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result)
 {
   /* if result is PASS, just return the result to the requester and
    * assign a new request if exists to this worker
@@ -106,6 +116,7 @@ void ServerHandler::handle_result(lsp_server* svr,int worker_id, TaskResult resu
   {
     //this means the req_id client could be dead; 
     //or the result of PASS was already sent back to client; so just ignore the result
+    PRINT(LOG_INFO, "Ignoring result");
     return;
   }
     
@@ -113,7 +124,25 @@ void ServerHandler::handle_result(lsp_server* svr,int worker_id, TaskResult resu
 
   //if this req has been removed from request_in_progress, then it means that either all subtasks returned fail or a pass was just found
   if(!in_vector(requests_in_progress, req_id))
-    ;//lsp_server_write(req_id, result);
+  {
+    if(result == PASS)
+    {
+      vector<string> v;
+      v.push_back("f");
+      v.push_back(pwd);
+      const char* pl = create_payload(v);
+      cout<<"Sending to requester: "<<pl<<endl;
+      lsp_server_write(svr, (void*)pl, strlen(pl), req_id);
+    }
+    else if(result == FAIL)
+    {
+      vector<string> v;
+      v.push_back("x");
+      const char* pl = create_payload(v);
+      cout<<"Sending to requester: "<<pl<<endl;
+      lsp_server_write(svr, (void*)pl, strlen(pl), req_id);
+    }
+  }
 }
 
 
@@ -190,10 +219,10 @@ void ServerHandler::cache_new_req(int req_id, string hash_pwd)
 
 void ServerHandler::register_new_task(int worker_id, int req_id, int task)
 {
-  PRINT(LOG_INFO," worker_id "<<worker_id<<" req_id "<<req_id<<" task "<<task<<"\n");
-  worker_task.insert(pair<int,int>(worker_id, task));
-  worker_to_request.insert(pair<int,int>(worker_id, req_id));
-  remove_from_vector(free_workers,worker_id);
+  PRINT(LOG_INFO,"Registering new task: worker_id:"<<worker_id<<" req_id:"<<req_id<<" task:"<<task);
+  worker_task.insert(pair<int, int>(worker_id, task));
+  worker_to_request.insert(pair<int, int>(worker_id, req_id));
+  remove_from_vector(free_workers, worker_id);
   
   // the below call is an UPSERT 
   WorkerTask wt(worker_id, task);
@@ -235,9 +264,17 @@ void decode_and_dispatch(ServerHandler* svr_handler,
     {
       svr_handler->handle_join(myserver, returned_id);
     }
-    else if(payload[0] == 'f' || payload[0] == 'x')
+    else if(payload[0] == 'f')
     {
-      int result = (payload[0] == 'f' ? 1 : 0);
+      string pl((const char*) payload);
+      string pwd = pl.substr(2);
+      TaskResult result = PASS;
+      svr_handler->handle_result(myserver, pwd, returned_id, result);
+    }
+    else if(payload[0] == 'x')
+    {
+      TaskResult result = FAIL;
+      svr_handler->handle_result(myserver, "", returned_id, result);
     }
     //lsp_server_write(myserver, payload, bytes, returned_id);
   }

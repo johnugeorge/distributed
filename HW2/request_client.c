@@ -3,22 +3,23 @@
 using namespace std;
 
 
-void handle_read(uint8_t* buffer)
+bool handle_read(uint8_t* buffer)
 {
-	cout<<" Message Type "<<buffer[0]<<"\n";
-
+   string str((const char*)buffer);
    if(buffer[0] == 'f')
    {
-
+      cout<<" Found: "<<str.substr(2)<<"\n";
    }
    else if (buffer[0] == 'x')
    {
-
+      cout<<" Not Found \n";
    }
    else
    {
-
+      cout<<" Unknown message Type "<<buffer[0]<<"\n";
+      return false;
    }
+   return true;
 
 }
 
@@ -63,14 +64,15 @@ int main(int argc, char** argv)
 	string crack_msg= string("c")+" "+hash+" "+lower+" "+upper;
 	cout<<" Crack Message "<<crack_msg<<"\n";
 	lsp_client_write(myclient, (uint8_t*) crack_msg.c_str(), strlen(crack_msg.c_str()));
-	
+	int result_not_recvd=false;
 	while(1) {
 
 	int numbytes=(lsp_client_read(myclient, buffer));
 	if(numbytes > 0)
 	{
 		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
-		handle_read(buffer);
+		result_not_recvd=handle_read(buffer);
+                if(result_not_recvd == true)break;
 		bzero(buffer,MAX_PAYLOAD_SIZE);
 	}
 	else if(numbytes == -1)

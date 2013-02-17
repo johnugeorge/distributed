@@ -41,7 +41,8 @@ void remove_from_vector(vector<T>& v, T data)
     }
     it++;
   }
-  cout<<" Element not in vector \n";
+
+  cout<<" Element "<<data<<" not in vector \n";
 }
 
 
@@ -58,6 +59,8 @@ bool in_map(map<K, V>& m, K key)
     it++;
   }
 
+
+  cout<<"Element "<<key<<" not in map \n";
   return false;
 }
 
