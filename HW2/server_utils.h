@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <string>
 
 using namespace std;
 template<typename T> bool in_vector(vector<T>& v);
@@ -33,16 +34,15 @@ void remove_from_vector(vector<T>& v, T data)
   typename vector<T>::iterator it = v.begin();
   while(it != v.end())
   {
-	  if((*it) == data)
-	  {
-		  v.erase(it);
-		  return;
-	  }
-	  it++;
+    if((*it) == data)
+    {
+      v.erase(it);
+      return;
+    }
+    it++;
   }
   cout<<" Element not in vector \n";
 }
-
 
 
 template<typename K, typename V>
@@ -61,14 +61,19 @@ bool in_map(map<K, V>& m, K key)
   return false;
 }
 
-vector<int> init_sub_tasks()
+
+vector<int> new_sub_task_list(int* divisions)
 {
+  int d = *divisions;
   vector<int> v;
-  v.push_back(1);
-  v.push_back(2);
-  v.push_back(3);
-  v.push_back(4);
-  v.push_back(5);
+  int i = 0;
+
+  while(i < d)
+  {
+    v.push_back(i+1);
+    i++;
+  }
+
   return v;
 }
 
@@ -101,6 +106,71 @@ vector<string> strsplit(string s, string delim)
 
   return tokens;
 }
+
+
+const char* create_payload(vector<string> strings)
+{
+  string pl;
+  size_t n = strings.size();
+  int i = 0;
+  while(i < n-1)
+  {
+    pl.append(strings[i]+" ");
+    i++;
+  }
+  pl.append(strings[n-1]);
+
+  return pl.c_str();
+}
+
+
+const char* create_crack_payload(string hash, int task_num, map<int, string>& sub_task_map)
+{
+  vector<string> strings;
+  string c("c");
+  string sub_task = sub_task_map[task_num];
+  vector<string> spl = strsplit(sub_task, "-");
+  strings.push_back(c);
+  strings.push_back(hash);
+  strings.push_back(spl[0]);
+  strings.push_back(spl[1]);
+
+  return create_payload(strings);
+}
+
+
+vector<string> get_divisions(int* pwd_length, int* divisions)
+{
+  int p = *pwd_length;
+  int d = *divisions;
+  int skip = d == 13 ? 1 : 0;
+
+  string hyphen("-");
+  char first = 'a';
+  char last = 'z';
+
+  int j = 0;
+  char first_copy = first;
+  vector<string> divs;
+  while(j < d)
+  {
+    string div;
+    div.append(1, first_copy);
+    div.append(p-1, first);
+    div.append(hyphen);
+    first_copy += skip;
+    div.append(1, first_copy);
+    div.append(p-1, last);
+    divs.push_back(div);
+    //cout<<div<<endl;
+    first_copy += 1;
+    j++;
+  }
+
+  return divs;
+}
+
+
 /*int main(void)
 {
   cout<<"h"<<endl;

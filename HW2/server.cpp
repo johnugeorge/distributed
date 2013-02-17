@@ -3,8 +3,6 @@
 #include <string>
 #include <queue>
 #include "server.h"
-#include "lsp.h"
-//#include "server_utils.h"
 
 using namespace std;
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
@@ -25,6 +23,7 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   vector<string> spl = strsplit(crack_req, " ");
   string req = spl[1]; //this is the hash
   string lower = spl[2];
+  init_subtask_store(lower.length());
 
   cache_new_req(req_id, req);
   if(free_workers.empty())
@@ -39,7 +38,7 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   bool success = false;
   
   //=== init some data structures
-  sub_tasks_remaining.insert(pair <int, vector<int> >(new_req, init_sub_tasks()));  
+  sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, new_sub_task_list(&divisions)));  
   requests_in_progress.push_back(new_req);
 
   while(!free_workers.empty() || i >= sub_tasks_remaining[new_req].size())
@@ -117,59 +116,62 @@ void ServerHandler::handle_result(lsp_server* svr,int worker_id, TaskResult resu
  */
 void ServerHandler::handle_dead_client(lsp_server* svr,int conn_id)
 {
-	//first need to figure out if this is a requester or a worker
-	bool worker = false;
-	int req_id = conn_id;
-	if(in_map(worker_to_request,conn_id) || in_vector(free_workers,conn_id))
+  //first need to figure out if this is a requester or a worker
+  bool worker = false;
+  int req_id = conn_id;
+  if(in_map(worker_to_request,conn_id) || in_vector(free_workers,conn_id))
+  {
+    worker = true;
+    req_id = worker_to_request[conn_id];
+  }
+  
+  if(worker)
+  {
+    /* this is a worker who has just been discovered to be dead; need to re-assign the task to another worker and modify the registry for this worker*/
+    int task_num = worker_task[conn_id];
+    if(free_workers.empty())
+    {
+      vector<WorkerTask> v = request_divided[req_id];
+      vector<WorkerTask>::iterator it = v.begin();
+      while(it != v.end())
+      {
+        if((*it).conn_id == conn_id)
 	{
-		worker = true;
-		req_id = worker_to_request[conn_id];
+	  v.erase(it);
+	  break;
 	}
-	if(worker)
-	{
-		/* this is a worker who has just been discovered to be dead; need to re-assign the task to another worker and modify the registry for this worker*/
-		int task_num = worker_task[conn_id];
-		if(free_workers.empty())
-		{
-			vector<WorkerTask> v = request_divided[req_id];
-			vector<WorkerTask>::iterator it = v.begin();
-			while(it != v.end())
-			{
-				if((*it).conn_id == conn_id)
-				{
-					v.erase(it);
-					break;
-				}
-				it++;
-			}
-			if(it == v.end())cout<<" conn_id not found \n";
-			//=== below should check if at all there is an entry for req_id
-			if(!in_map(sub_tasks_remaining, req_id))
-			{
-				vector<int> v2;
-				v2.push_back(task_num);
-				sub_tasks_remaining.insert(pair<int, vector<int> >(req_id, v2));
-			}
-			else
-				sub_tasks_remaining[req_id].push_back(task_num);
-		}
-		else
-		{
-			int i = free_workers.front();
-			//lsp_server_write(i, task)
-			register_new_task(i, req_id, task_num);
-
-			/* make sure conn_id is removed from everywhere */
-		}
-	}
-	else
-	{
-		/* this is a requester; so remove it from the request_mapping, so that the
-		   cracking result is ignored when it arrives */
-		request_divided.erase(req_id);
-		remove_from_vector(requests_in_progress,req_id);
-	//		requests_in_progress.erase(req_id);
-	}
+	it++;
+      }
+      
+      if(it == v.end())
+        cout<<" conn_id not found \n";
+      
+      //=== below should check if at all there is an entry for req_id
+      if(!in_map(sub_tasks_remaining, req_id))
+      {
+        vector<int> v2;
+	v2.push_back(task_num);
+	sub_tasks_remaining.insert(pair<int, vector<int> >(req_id, v2));
+      }
+      else
+	sub_tasks_remaining[req_id].push_back(task_num);
+    }
+    else
+    {
+      int i = free_workers.front();
+      //lsp_server_write(i, task)
+      register_new_task(i, req_id, task_num);
+      /* make sure conn_id is removed from everywhere */
+    }
+  }
+  else
+  {
+    /* this is a requester; so remove it from the request_mapping, so that the
+       cracking result is ignored when it arrives */
+    request_divided.erase(req_id);
+    remove_from_vector(requests_in_progress,req_id);
+    //requests_in_progress.erase(req_id);
+  }
 }
 
 
@@ -186,6 +188,7 @@ void ServerHandler::register_new_task(int worker_id, int req_id, int task)
   worker_task.insert(pair<int,int>(worker_id, task));
   worker_to_request.insert(pair<int,int>(worker_id, req_id));
   remove_from_vector(free_workers,worker_id);
+  
   // the below call is an UPSERT 
   WorkerTask wt(worker_id, task);
   if(!in_map(request_divided, req_id))
@@ -244,37 +247,27 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 
 int main(int argc, char** argv) 
 {
-	lsp_set_drop_rate(_DROP_RATE);
-	lsp_set_epoch_cnt(_EPOCH_CNT);
-	lsp_set_epoch_lth(_EPOCH_LTH);
-	srand(12345);
+  /*lsp_set_drop_rate(_DROP_RATE);
+  lsp_set_epoch_cnt(_EPOCH_CNT);
+  lsp_set_epoch_lth(_EPOCH_LTH);*/
+  initialize_configuration();
+  srand(12345);
 
-	lsp_server* myserver = lsp_server_create(atoi(argv[1]));
-	ServerHandler* svr_handler = new ServerHandler();
+  lsp_server* myserver = lsp_server_create(atoi(argv[1]));
+  ServerHandler* svr_handler = new ServerHandler();
 
-	uint8_t payload[MAX_PAYLOAD_SIZE];
-   uint32_t returned_id;
-   int bytes_read;
-   int count = 0;
+  uint8_t payload[MAX_PAYLOAD_SIZE];
+  uint32_t returned_id;
+  int bytes_read;
+  int count = 0;
 
-   while(1)
-   {
-     //printf("Issuing read\n");
-     bzero(payload, MAX_PAYLOAD_SIZE);
-     int bytes = lsp_server_read(myserver, payload, &returned_id);
-     decode_and_dispatch(svr_handler,myserver, payload,returned_id,bytes);
-/*     //Echo it right back
-     if(returned_id != 0 && bytes > 0)
-     {
-       std::cout<<" conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<" strlen "<<strlen((char*)payload)<<"\n";
-       //lsp_server_write(myserver, payload, bytes, returned_id);
-       count++;
-     }
-     else if (returned_id !=0 && bytes == -1)
-     {
-       std::cout<<" client with conn_id "<<returned_id<<" shuts down "<<payload<<"bytes "<<bytes<<"\n";
-       //      exit(0);
-     }
-     */
-   }
+  while(1)
+  {
+    //printf("Issuing read\n");
+    bzero(payload, MAX_PAYLOAD_SIZE);
+    int bytes = lsp_server_read(myserver, payload, &returned_id);
+    decode_and_dispatch(svr_handler,myserver, payload,returned_id,bytes);
+   
+     
+  }
 }

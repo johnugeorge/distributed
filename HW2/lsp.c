@@ -8,9 +8,11 @@ using namespace std;
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
 double drop_rate = _DROP_RATE;
-
-int loglevel= LOG_INFO;
+int loglevel = LOG_INFO;
 thread_info thread_info_map;
+
+Configuration config;
+
 /*
  *
  *
@@ -32,6 +34,11 @@ void lsp_set_epoch_cnt(int cnt)
 void lsp_set_drop_rate(double rate)
 {
   drop_rate = rate;
+}
+
+void lsp_set_log_level(int l)
+{
+  loglevel = l;
 }
 
 double lsp_get_epoch_lth()

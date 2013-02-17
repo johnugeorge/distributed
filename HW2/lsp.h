@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -21,6 +22,7 @@
 #include "util.h"
 #include <map>
 #include <arpa/inet.h>
+
 // Global Parameters. For both server and clients.
 
 #define _EPOCH_LTH 2.0
@@ -36,7 +38,7 @@ typedef enum loglevels{
 }loglevels;
 
 extern int loglevel;
-#define cout cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+//#define cout cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
 
 #define PRINT(a,b) \
 		if(a>=loglevel) \
@@ -56,10 +58,10 @@ extern int loglevel;
 void lsp_set_epoch_lth(double lth);
 void lsp_set_epoch_cnt(int cnt);
 void lsp_set_drop_rate(double rate);
+void lsp_set_log_level(int lg);
 double lsp_get_epoch_lth();
 int lsp_get_epoch_cnt();
 double lsp_get_drop_rate();
-
 
 typedef struct
 {
@@ -226,6 +228,40 @@ lsp_server()
 	next_free_conn_id=1;
 }
 } lsp_server;
+
+
+typedef std::map<std::string, std::string> Configuration;
+extern Configuration config;
+inline void initialize_configuration()
+{
+  if(!config.empty())
+  {
+    std::cout<<"Initial configuration already set."<<std::endl;
+    return;
+  }
+
+  std::ifstream read;
+  std::string file_name = "lsp.conf";
+  read.open(file_name.c_str());
+  std::cout<<"Reading configuration..."<<std::endl;
+  std::string s;
+  while(std::getline(read, s)) config[s.substr(0, s.find('='))]=s.substr(s.find('=')+1);
+
+  lsp_set_epoch_lth(atof(config["EPOCH_LTH"].c_str()));
+  lsp_set_epoch_cnt(atoi(config["EPOCH_CNT"].c_str()));
+  lsp_set_drop_rate(atof(config["DROP_RATE"].c_str()));
+
+  std::string lg_level = config["LOG_LEVEL"];
+  if(lg_level != "")
+  {
+    if(lg_level == "LOG_DEBUG")
+      lsp_set_log_level(1);
+    else if(lg_level == "LOG_INFO")
+      lsp_set_log_level(2);
+    else if(lg_level == "LOG_CRIT")
+      lsp_set_log_level(3);
+  }
+}
 
 
 lsp_server* lsp_server_create(int port);

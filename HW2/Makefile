@@ -1,6 +1,6 @@
 CC = g++
 
-TARGET = worker request sample_client sample_server server
+TARGET = worker request sample_client sample_server server test
 
 CFLAGS += -g -I/opt/local/include
 #LDFLAGS += -g -lpthread
@@ -17,10 +17,11 @@ worker: worker_client.c	lsp.o
 request: request_client.c lsp.o  
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o request_client.c -o $@ $(LDFLAGS)
 
-
-
-server: 	server.cpp lsp.o
+server: server.cpp lsp.o
 	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o server.cpp -o $@ $(LDFLAGS)
+
+test: lsp.o
+	$(CC)  $(CFLAGS) lsp.o epoch_handler.o network_handler.o lspmessage.pb-c.o template_test_1.cpp -o $@ $(LDFLAGS)
 
 lsp.o: epoch_handler.o network_handler.o lspmessage.pb-c.o 
 
