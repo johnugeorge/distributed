@@ -404,7 +404,7 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 	int numbytes;
 	uint8_t* buff;
 	int len=0;
-	string s="NIL";
+	char* s="NIL";
 	pckt_fmt pkt;
 	pkt.conn_id=client->conn_id;
 	conn_arg conn_argv;
@@ -425,7 +425,7 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 		buff=message_encode(client->conn_id,0,"\0",len);
 		conn_argv.seq_no=0;
 		pkt.seq_no=0;
-		pkt.data=(char*)s.c_str();
+		pkt.data=s;
        		//(client->conn_map)[conn_argv]=false;
 	        set_ack_status(client,conn_argv,false);
 
@@ -436,7 +436,7 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 	        buff = message_encode(client->conn_id,seq_no,"\0",len);
 		conn_argv.seq_no=seq_no;
 		pkt.seq_no=seq_no;
-		pkt.data=(char*)s.c_str();
+		pkt.data=s;
 
 	}
 	else if(pkt_type == DATA_PCKT_RESEND)
@@ -468,7 +468,7 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	int numbytes;
 	uint8_t* buff;
 	int len =0 ;
-	string s="NIL";
+	char* s="NIL";
 	client_info* client_conn=server->client_conn_info[client_conn_id];
 	PRINT(LOG_DEBUG," In server send "<<client_conn->conn_id<<" \n");
 	pckt_fmt pkt;
@@ -493,7 +493,7 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 		buff=message_encode(client_conn->conn_id,0,"\0",len);
 		conn_argv.seq_no=0;
 		pkt.seq_no=0;
-		pkt.data=(char*)s.c_str();
+		pkt.data=s;
 
 	}
 	else if(pkt_type == DATA_ACK)
@@ -501,7 +501,7 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	        buff = message_encode(client_conn->conn_id,seq_no,"\0",len);
 		conn_argv.seq_no=seq_no;
 		pkt.seq_no=seq_no;
-		pkt.data=(char*)s.c_str();
+		pkt.data=s;
 
 
 	}

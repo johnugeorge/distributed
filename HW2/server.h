@@ -68,6 +68,10 @@ class ServerHandler
 
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
+      PRINT(LOG_INFO, "the worker "<<worker_id<<" has returned"); 
+      PRINT(LOG_INFO, "req divided map before");
+      print_current_request_divisions();
+
       //=== remove the assigned subtask
       map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
       vector<WorkerTask> v1 = it1->second;
@@ -90,7 +94,7 @@ class ServerHandler
       //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       vector<int> v2 = it2->second;
-      vector<int>::iterator vit2 = v2.begin();
+      /*vector<int>::iterator vit2 = v2.begin();
       while(vit2 != v2.end())
       {
         if((*vit2) == task_num)
@@ -103,7 +107,7 @@ class ServerHandler
   
       if(vit2 == v2.end())
         cout<<"task num Not found \n";
-      
+      */
       bool last_subtask = false;
       if(v2.empty())
         last_subtask = true;
@@ -121,13 +125,11 @@ class ServerHandler
           if((*vit3) == req_id)
 	  {
             requests_in_progress.erase(vit3);
-	    break;
+	    cout<<"Request "<<(*vit3)<<" is not in progress anymore"<<endl;
+            break;
 	  }
           vit3++;
 	}
-
-        if(vit3 == requests_in_progress.end())
-          cout<<" Request Id not found in requests_in_progress \n";
 
         //completely wipe out the entry of this request in requests assigned 
         //and sub tasks remaining
@@ -172,6 +174,26 @@ class ServerHandler
     void init_divisions(int pwd_length)
     {
       //calculate the divisions
+    }
+
+    void print_current_request_divisions()
+    {
+      map<int, vector<WorkerTask> >& m = request_divided;
+      map<int, vector<WorkerTask> >::iterator it = m.begin();
+      while(it != m.end())
+      {
+        vector<WorkerTask> v = it->second;
+        size_t n = v.size();
+        int i = 0;
+        cout<<it->first<<" = ";
+        while(i < n)
+        {
+          WorkerTask w = v[i];
+          cout<<"<"<<w.conn_id<<", "<<w.task_num<<"> :: ";
+          i++;
+        }
+        it++;
+      }
     }
 
   public:
