@@ -43,7 +43,7 @@ extern int loglevel;
 
 #define PRINT(a,b) \
 		if(a>=loglevel) \
-		cout<<b<<"\n";
+		cout<<b<<std::endl;
 
 
 #define COUT cout

@@ -113,7 +113,7 @@ void c_network_handler(void* p)
 		  {
 			  client->conn_id= pkt.conn_id;
 			  client->conn_state=CONN_REQ_ACK_RCVD;
-			  PRINT(LOG_DEBUG," New Connection Id of the Client "<<client->conn_id<<"\n");
+			  PRINT(LOG_INFO," New Connection Id of the Client "<<client->conn_id<<"\n");
 		  }
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
 		  {
