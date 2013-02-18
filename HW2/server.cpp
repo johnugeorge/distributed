@@ -49,15 +49,16 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   cout<<"For request: "<<new_req<<endl;
   cout<<"the remaining sub_tasks are: ";
   print_vector(sub_tasks_remaining[new_req]);
+  cout<<"Current no of free workers: "<<free_workers.size()<<endl;
   cout<<endl;
 
-  while(!free_workers.empty() || i >= sub_tasks_remaining[new_req].size())
+  while(!free_workers.empty() && i < sub_tasks_remaining[new_req].size())
   {
     int w = free_workers.front(); //this is also a pop
     int task_num = sub_tasks_remaining[new_req].front();
-    const char* pl = create_crack_payload(h, task_num, sub_task_store);
-    PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<strlen(pl)+1);
-    lsp_server_write(svr, (void*)pl, strlen(pl), w);
+    string pl = create_crack_payload(h, task_num, sub_task_store);
+    PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<pl.length()+1);
+    lsp_server_write(svr, (void*)pl.c_str(), pl.length(), w);
     register_new_task(w, new_req, task_num);
     cout<<"After sending to worker, For request: "<<new_req<<endl;
     cout<<"the remaining sub_tasks are: ";
@@ -130,19 +131,63 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       vector<string> v;
       v.push_back("f");
       v.push_back(pwd);
-      const char* pl = create_payload(v);
+      string pl = create_payload(v);
       cout<<"Sending to requester: "<<pl<<endl;
-      lsp_server_write(svr, (void*)pl, strlen(pl), req_id);
+      lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
     else if(result == FAIL)
     {
       vector<string> v;
       v.push_back("x");
-      const char* pl = create_payload(v);
+      string pl = create_payload(v);
       cout<<"Sending to requester: "<<pl<<endl;
-      lsp_server_write(svr, (void*)pl, strlen(pl), req_id);
+      lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
   }
+
+  //now this worker is free; it can be given a new task
+  cout<<"Continuing.."<<endl;
+  cout<<"Current reqs in progress: "<<endl;
+  print_vector(requests_in_progress);
+  cout<<endl;
+  for(int i=0; i<requests_in_progress.size(); i++)
+  {
+    int r = requests_in_progress[i]; 
+    vector<int> s = sub_tasks_remaining[r];
+    cout<<"Sub tasks remaining: "<<endl;
+    print_vector(s);
+    cout<<endl;
+    if(!s.empty())
+    {
+      int t = s.front();
+      string pl = create_crack_payload(request_store[r], t, sub_task_store);
+      PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
+      lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
+      register_new_task(worker_id, r, t);
+      cout<<"After sending to worker, For request: "<<r<<endl;
+      cout<<"the remaining sub_tasks are: ";
+      print_vector(sub_tasks_remaining[r]);
+      cout<<endl;
+      return;
+    }
+  }
+   
+  if(request_cache.empty())
+  {
+    //either no req is in progress or no task is left
+    free_workers.push_back(worker_id);
+    cout<<"free workers: ";
+    print_vector(free_workers);
+  }
+  else
+  {
+    //there is a req in the cache that can begin working now
+    //int req_id = request_cache.front();
+    //lsp_server_write(worker_id, 0); //and also the hash string 
+    //register_new_task(worker_id, req_id, 0);
+    return;
+  }
+
 }
 
 
@@ -224,7 +269,7 @@ void ServerHandler::register_new_task(int worker_id, int req_id, int task)
   worker_to_request.insert(pair<int, int>(worker_id, req_id));
   remove_from_vector(free_workers, worker_id);
   
-  // the below call is an UPSERT 
+  //=== the below call is an UPSERT 
   WorkerTask wt(worker_id, task);
   if(!in_map(request_divided, req_id))
   {
@@ -240,7 +285,7 @@ void ServerHandler::register_new_task(int worker_id, int req_id, int task)
     request_divided[req_id].swap(v);
   }
 
-  // strike off this sub_task
+  //=== strike off this sub_task
   vector<int> v = sub_tasks_remaining[req_id];
   remove_from_vector(v, task);
   sub_tasks_remaining[req_id].swap(v);

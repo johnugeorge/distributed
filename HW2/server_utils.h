@@ -111,23 +111,25 @@ vector<string> strsplit(string s, string delim)
 }
 
 
-const char* create_payload(vector<string> strings)
+string create_payload(vector<string> strings)
 {
   string pl;
   size_t n = strings.size();
   int i = 0;
   while(i < n-1)
   {
+    cout<<"appending "<<strings[i]<<endl;
     pl.append(strings[i]+" ");
     i++;
   }
   pl.append(strings[n-1]);
 
-  return pl.c_str();
+  cout<<pl<<endl;
+  return pl;
 }
 
 
-const char* create_crack_payload(string hash, int task_num, map<int, string>& sub_task_map)
+string create_crack_payload(string hash, int task_num, map<int, string>& sub_task_map)
 {
   vector<string> strings;
   string c("c");
@@ -137,8 +139,11 @@ const char* create_crack_payload(string hash, int task_num, map<int, string>& su
   strings.push_back(hash);
   strings.push_back(spl[0]);
   strings.push_back(spl[1]);
+  cout<<strings.size()<<endl;
 
-  return create_payload(strings);
+  string s = create_payload(strings);
+  cout<<"Creating crack payload: "<<s<<endl;
+  return s;
 }
 
 

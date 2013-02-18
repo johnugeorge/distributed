@@ -83,14 +83,19 @@ class ServerHandler
 	{
 	  task_num = (*vit1).task_num;
 	  v1.erase(vit1);
+          request_divided[req_id].swap(v1);
 	  break;
 	}
 	vit1++;
       }
 
       if(vit1 == v1.end())
-        cout<<"worker Id Not found \n";
+        cout<<"worker Id Not found"<<endl;
       
+      cout<<endl;
+      print_current_request_divisions();
+      cout<<endl;
+
       //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       vector<int> v2 = it2->second;
@@ -136,6 +141,8 @@ class ServerHandler
         request_divided.erase(it1);
         sub_tasks_remaining.erase(it2);
       }
+
+      cout<<"Exiting func"<<endl;
     }
 
     void restore_subtask(int req_id, int prev_worker_id)
@@ -194,6 +201,8 @@ class ServerHandler
         }
         it++;
       }
+
+      cout<<"Exiting print_current_request_divisions"<<endl;
     }
 
   public:
