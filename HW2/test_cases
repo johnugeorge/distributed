@@ -1,0 +1,9 @@
+a) 1 worker joins. request joins 
+
+b)2 worker joins ,. request joins
+
+c)1 worker joins. request joins and gets result. another request joins and gets result
+
+d)2 worker joins. request joins and gets result. another request joins and gets result
+
+e) a)-d) opposite with request joining first
