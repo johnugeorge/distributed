@@ -18,14 +18,15 @@ ServerHandler::ServerHandler()
  */
 void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
 {
+  PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_crack");
   string crack_req((const char*)payload); 
   vector<string> spl = strsplit(crack_req, " ");
   string req = spl[1]; //this is the hash
   string lower = spl[2];
   init_subtask_store(lower.length());
 
-  PRINT(LOG_INFO, "Below is the subtask store: ");
-  print_map(sub_task_store); 
+  PRINT(LOG_INFO, "Subtask store: ");
+  PRINT(LOG_INFO, print_map(sub_task_store));
 
   cache_new_req(req_id, req);
   if(free_workers.empty())
@@ -44,13 +45,9 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   //=== init some data structures
   sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, new_sub_task_list(&divisions)));  
   requests_in_progress.push_back(new_req);
-  PRINT(LOG_INFO,"Current reqs in progress at the server: ");
-  print_vector(requests_in_progress);
-  cout<<"For request: "<<new_req<<endl;
-  cout<<"the remaining sub_tasks are: ";
-  print_vector(sub_tasks_remaining[new_req]);
-  cout<<"Current no of free workers: "<<free_workers.size()<<endl;
-  cout<<endl;
+  PRINT(LOG_INFO, "Current reqs in progress at the server: "+print_vector(requests_in_progress));
+  PRINT(LOG_INFO, "For request: "<<new_req<<" the remaining sub_tasks are: "+print_vector(sub_tasks_remaining[new_req]));
+  PRINT(LOG_INFO, "Current no of free workers: "<<free_workers.size());
 
   while(!free_workers.empty() && i < sub_tasks_remaining[new_req].size())
   {
@@ -60,12 +57,11 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
     PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<pl.length()+1);
     lsp_server_write(svr, (void*)pl.c_str(), pl.length(), w);
     register_new_task(w, new_req, task_num);
-    cout<<"After sending to worker, For request: "<<new_req<<endl;
-    cout<<"the remaining sub_tasks are: ";
-    print_vector(sub_tasks_remaining[new_req]);
-    cout<<endl;
+    PRINT(LOG_INFO, "The remaining sub_tasks for req "<<new_req<<" are: "+print_vector(sub_tasks_remaining[new_req]));
     i++;
   }
+  
+  PRINT(LOG_DEBUG, "Exiting: ServerHandler::handle_crack");
 }
 
 /*
@@ -73,6 +69,7 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
  */
 void ServerHandler::handle_join(lsp_server* svr,int worker_id)
 {
+  PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_join");
   for(int r = 0; r < requests_in_progress.size(); r++)
   {
     vector<int> s = sub_tasks_remaining[r];
@@ -98,6 +95,8 @@ void ServerHandler::handle_join(lsp_server* svr,int worker_id)
     register_new_task(worker_id, req_id, 0);
     return;
   }
+
+  PRINT(LOG_DEBUG, "Exiting: ServerHandler::handle_join");
 }
 
 
@@ -106,6 +105,8 @@ void ServerHandler::handle_join(lsp_server* svr,int worker_id)
  */
 void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result)
 {
+  PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_result");
+
   /* if result is PASS, just return the result to the requester and
    * assign a new request if exists to this worker
    *
@@ -132,7 +133,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       v.push_back("f");
       v.push_back(pwd);
       string pl = create_payload(v);
-      cout<<"Sending to requester: "<<pl<<endl;
+      PRINT(LOG_INFO, "Sending to requester: "+pl);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
     else if(result == FAIL)
@@ -140,23 +141,20 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       vector<string> v;
       v.push_back("x");
       string pl = create_payload(v);
-      cout<<"Sending to requester: "<<pl<<endl;
+      PRINT(LOG_INFO, "Sending to requester: "+pl);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
   }
 
   //now this worker is free; it can be given a new task
-  cout<<"Continuing.."<<endl;
-  cout<<"Current reqs in progress: "<<endl;
-  print_vector(requests_in_progress);
-  cout<<endl;
+  PRINT(LOG_INFO, "Worker "<<worker_id<<" is free; can be given a new task");
+  PRINT(LOG_INFO, "Current requests in progress: "+print_vector(requests_in_progress));
   for(int i=0; i<requests_in_progress.size(); i++)
   {
     int r = requests_in_progress[i]; 
+    PRINT(LOG_INFO, "Request: "<<r);
     vector<int> s = sub_tasks_remaining[r];
-    cout<<"Sub tasks remaining: "<<endl;
-    print_vector(s);
-    cout<<endl;
+    PRINT(LOG_INFO, "Sub tasks remaining: "+print_vector(s));
     if(!s.empty())
     {
       int t = s.front();
@@ -164,10 +162,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
       register_new_task(worker_id, r, t);
-      cout<<"After sending to worker, For request: "<<r<<endl;
-      cout<<"the remaining sub_tasks are: ";
-      print_vector(sub_tasks_remaining[r]);
-      cout<<endl;
+      PRINT(LOG_INFO, "For request: "<<r<<" the remaining sub_tasks are: "+print_vector(sub_tasks_remaining[r]));
       return;
     }
   }
@@ -176,8 +171,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
   {
     //either no req is in progress or no task is left
     free_workers.push_back(worker_id);
-    cout<<"free workers: ";
-    print_vector(free_workers);
+    PRINT(LOG_INFO, "Free workers: "+print_vector(free_workers));
   }
   else
   {
@@ -187,7 +181,6 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     //register_new_task(worker_id, req_id, 0);
     return;
   }
-
 }
 
 
