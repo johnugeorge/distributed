@@ -255,54 +255,60 @@ inline void initialize_configuration()
  * generic print function for a vector
  */
 template<typename T>
-void print_vector(std::vector<T>& v)
+std::string print_vector(std::vector<T>& v)
 {
-  if(v.empty()) return;
+  if(v.empty()) return "";
 
   typename std::vector<T>::iterator it = v.begin();
-  cout<<"[";
+  std::string res;
+  res.append("[");
   while(it != v.end())
   {
-    cout<<(*it)<<" ";
+    res.append((*it)+" ");
     it++;
   }
   
-  cout<<"]"<<std::endl;
+  res.append("]");
+  return res;
 } 
 
 /*
  * generic print function for map<K, vector<V> >
  */
 template<typename K, typename V>
-void print_vector_map(std::map<K, std::vector<V> >& m)
+std::string print_vector_map(std::map<K, std::vector<V> >& m)
 {
-  if(m.empty()) return;
+  if(m.empty()) return "";
 
   typename std::map<K, std::vector<V> >::iterator it = m.begin();
+  std::string res;
   while(it != m.end())
   {
     std::vector<V>& v = it->second;
-    cout<<it->first<<" = ";
-    print_vector(v);
-    cout<<std::endl;
+    res.append(it->first+" = "+print_vector(v)+"\n");
     it++;
-  }   
+  }  
+
+  return res;
 }
 
 /*
  * generic print function for map<K, vector<V> >
  */
 template<typename K, typename V>
-void print_map(std::map<K, V>& m)
+std::string print_map(std::map<K, V>& m)
 {
-  if(m.empty()) return;
+  if(m.empty()) return "";
 
   typename std::map<K, V>::iterator it = m.begin();
+  std::string res;
   while(it != m.end())
   {
-    cout<<it->first<<" = "<<it->second<<std::endl;
+    res.append(it->first+" = "+it->second+"\n");
     it++;
   }
+
+  return res;
 }
 
 
