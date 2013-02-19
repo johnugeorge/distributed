@@ -1,5 +1,9 @@
 #include "lsp.h"
 
+using namespace std;
+
+ofstream outFile("server.txt");
+
 int main(int argc, char** argv) 
 {
 	lsp_server* myserver = lsp_server_create(atoi(argv[1]));

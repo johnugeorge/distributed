@@ -29,6 +29,6 @@ lsp.o: epoch_handler.o network_handler.o lspmessage.pb-c.o
 	$(CC) -c $(CFLAGS) $< -o $@ 
 
 clean:
-	rm -f *.o 
+	rm -f *.o *.txt 
 	rm -f $(TARGET)
 
