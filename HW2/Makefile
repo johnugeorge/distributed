@@ -1,6 +1,6 @@
 CC = g++
 
-TARGET = worker request sample_client sample_server server test
+TARGET = worker request sample_client sample_server server
 
 CFLAGS += -g -I/opt/local/include
 #LDFLAGS += -g -lpthread

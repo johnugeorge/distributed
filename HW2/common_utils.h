@@ -1,4 +1,5 @@
 //#include<string>
+#pragma once
 #include<time.h>
 #include<sys/time.h>
 
@@ -28,6 +29,13 @@ PRINT(LOG_DEBUG, " Conn_Id:  "<<pkt.conn_id<<"\n"); \
 PRINT(LOG_DEBUG, " Seq_no:  "<<pkt.seq_no<<"\n"); \
 PRINT(LOG_DEBUG, " Payload: "<<pkt.data<<"\n"); \
 PRINT(LOG_DEBUG, "==========END=======================\n");
+
+/*typedef enum loglevels{
+        LOG_DEBUG=1,
+        LOG_INFO =2,
+        LOG_CRIT =3
+}loglevels;
+*/
 
 inline const char*	getTimeStr(void)
 {

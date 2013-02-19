@@ -2,6 +2,8 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "common_utils.h"
+
 
 using namespace std;
 template<typename T> bool in_vector(vector<T>& v);
