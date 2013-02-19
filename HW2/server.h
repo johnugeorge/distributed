@@ -72,7 +72,7 @@ class ServerHandler
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
       PRINT(LOG_INFO, "Entering ServerHandler::remove_subtask");
-      PRINT(LOG_INFO, "Requests are currently divided as below.");
+      //PRINT(LOG_INFO, "Requests are currently divided as below.");
       print_current_request_divisions();
 
       //=== remove the assigned subtask
@@ -93,11 +93,9 @@ class ServerHandler
       }
 
       if(vit1 == v1.end())
-        cout<<"worker Id Not found"<<endl;
+        PRINT(LOG_INFO, "Worker Id "<<worker_id<<" not found");
       
-      cout<<endl;
       print_current_request_divisions();
-      cout<<endl;
 
       //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
@@ -133,7 +131,7 @@ class ServerHandler
           if((*vit3) == req_id)
 	  {
             requests_in_progress.erase(vit3);
-	    cout<<"Request "<<(*vit3)<<" is not in progress anymore"<<endl;
+            PRINT(LOG_INFO, "Request "<<(*vit3)<<" is not in progress anymore");
             break;
 	  }
           vit3++;
@@ -145,7 +143,7 @@ class ServerHandler
         sub_tasks_remaining.erase(it2);
       }
 
-      cout<<"Exiting func"<<endl;
+      PRINT(LOG_INFO, "Exiting ServerHandler::remove_subtask");
     }
 
     void restore_subtask(int req_id, int prev_worker_id)
@@ -154,6 +152,7 @@ class ServerHandler
        * this method restores a subtask that was previously assigned to a worker; due to the death of the worker
        */
 
+      PRINT(LOG_INFO, "Entering ServerHandler::restore_subtask");
       int task_num = worker_task[prev_worker_id];
       if(free_workers.empty())
       {
@@ -172,13 +171,15 @@ class ServerHandler
 	}
         
         if(vit1 == v1.end())
-          cout<<" prev worker Id Not found \n";
+          PRINT(LOG_INFO, "Prev worker id"<<prev_worker_id<<" not found");
         
         //=== now put it back as a pending task
         map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
         vector<int> v2 = it2->second;
         v2.push_back(task_num);
       }
+
+      PRINT(LOG_INFO, "Exiting ServerHandler::restore_subtask");
     }
 
     void init_divisions(int pwd_length)
@@ -198,17 +199,18 @@ class ServerHandler
         vector<WorkerTask> v = it->second;
         size_t n = v.size();
         int i = 0;
-        cout<<it->first<<" = ";
+        PRINT(LOG_INFO, it->first<<" = ");
         while(i < n)
         {
           WorkerTask w = v[i];
           cout<<"<"<<w.conn_id<<", "<<w.task_num<<"> :: ";
           i++;
         }
+        cout<<endl;
         it++;
       }
 
-      cout<<"Exiting print_current_request_divisions"<<endl;
+      PRINT(LOG_INFO, "Exiting print_current_request_divisions");
     }
 
   public:

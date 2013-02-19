@@ -23,6 +23,7 @@
 #include "common_utils.h"
 #include <map>
 #include <arpa/inet.h>
+#include <sstream>
 
 // Global Parameters. For both server and clients.
 
@@ -264,7 +265,9 @@ std::string print_vector(std::vector<T>& v)
   res.append("[");
   while(it != v.end())
   {
-    res.append((*it)+" ");
+    std::stringstream ss;
+    ss<<(*it);
+    res.append(ss.str()+" ");
     it++;
   }
   
@@ -284,8 +287,10 @@ std::string print_vector_map(std::map<K, std::vector<V> >& m)
   std::string res;
   while(it != m.end())
   {
+    std::stringstream ss;
     std::vector<V>& v = it->second;
-    res.append(it->first+" = "+print_vector(v)+"\n");
+    ss<<it->first<<" = "<<print_vector(v)<<"\n";
+    res.append(ss.str());
     it++;
   }  
 
@@ -304,7 +309,9 @@ std::string print_map(std::map<K, V>& m)
   std::string res;
   while(it != m.end())
   {
-    res.append(it->first+" = "+it->second+"\n");
+    std::stringstream ss;
+    ss<<it->first<<" = "<<it->second<<"\n";
+    res.append(ss.str());
     it++;
   }
 

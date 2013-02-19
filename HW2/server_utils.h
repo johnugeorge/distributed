@@ -128,7 +128,8 @@ string create_payload(vector<string> strings)
   while(i < n-1)
   {
     //cout<<"appending "<<strings[i]<<endl;
-    pl.append(strings[i]+" ");
+    pl.append(strings[i]);
+    pl.append(" ");
     i++;
   }
   pl.append(strings[n-1]);
