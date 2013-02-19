@@ -6,6 +6,9 @@
 #include "server.h"
 
 using namespace std;
+
+ofstream outFile("server.txt");
+
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
 
 ServerHandler::ServerHandler()

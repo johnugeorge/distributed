@@ -5,7 +5,11 @@
 #include "lsp.h"
 //#include "lsp.c"
 
+
 using namespace std;
+
+ofstream outFile("template_test.txt");
+
 template<typename T> bool inVector(vector<T>& v);
 template<typename K, typename V> bool inMap(map<K, V>& m);
 bool break_pwd_r(string, string&, string&, string&);

@@ -4,6 +4,31 @@
 
 #define TIME_STR_MAX_SIZE 100
 static char timeStr[TIME_STR_MAX_SIZE];
+
+
+//#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
+#define cout std::cout
+
+#define COUT cout
+
+#define PRINT(a,b) \
+	if(a>=loglevel) \
+{\
+	cout<<b<<std::endl<<std::flush;\
+	outFile<<b;\
+}
+
+
+
+
+#define PRINT_PACKET(pkt,dir) \
+	PRINT(LOG_DEBUG, "==========START=======================\n"); \
+PRINT(LOG_DEBUG, " ----"<<dir<<" Packet Info----\n"); \
+PRINT(LOG_DEBUG, " Conn_Id:  "<<pkt.conn_id<<"\n"); \
+PRINT(LOG_DEBUG, " Seq_no:  "<<pkt.seq_no<<"\n"); \
+PRINT(LOG_DEBUG, " Payload: "<<pkt.data<<"\n"); \
+PRINT(LOG_DEBUG, "==========END=======================\n");
+
 inline const char*	getTimeStr(void)
 {
 	time_t t (time(0));

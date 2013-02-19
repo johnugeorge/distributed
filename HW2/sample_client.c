@@ -1,5 +1,8 @@
 #include "lsp.h"
 
+using namespace std;
+
+ofstream outFile("sample_client.txt");
 
 int main(int argc, char** argv) 
 {

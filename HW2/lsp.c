@@ -12,7 +12,6 @@ int loglevel = LOG_INFO;
 thread_info thread_info_map;
 
 Configuration config;
-
 /*
  *
  *

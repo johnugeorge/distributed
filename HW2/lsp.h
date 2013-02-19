@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <vector>
 #include "Queue.h"
-#include "util.h"
+#include "common_utils.h"
 #include <map>
 #include <arpa/inet.h>
 
@@ -39,23 +39,8 @@ typedef enum loglevels{
 }loglevels;
 
 extern int loglevel;
-//#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
-#define cout std::cout
+extern std::ofstream outFile;
 
-#define COUT cout
-
-#define PRINT(a,b) \
-		if(a>=loglevel) \
-		cout<<b<<std::endl<<std::flush;
-
-
-#define PRINT_PACKET(pkt,dir) \
-	PRINT(LOG_DEBUG, "==========START=======================\n"); \
-	PRINT(LOG_DEBUG, " ----"<<dir<<" Packet Info----\n"); \
-	PRINT(LOG_DEBUG, " Conn_Id:  "<<pkt.conn_id<<"\n"); \
-        PRINT(LOG_DEBUG, " Seq_no:  "<<pkt.seq_no<<"\n"); \
-        PRINT(LOG_DEBUG, " Payload: "<<pkt.data<<"\n"); \
-	PRINT(LOG_DEBUG, "==========END=======================\n");
 
 void lsp_set_epoch_lth(double lth);
 void lsp_set_epoch_cnt(int cnt);
