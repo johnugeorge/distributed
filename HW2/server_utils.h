@@ -10,6 +10,7 @@ template<typename K, typename V> bool in_map(map<K, V>& m);
 template<typename T> 
 bool in_vector(vector<T>& v, T data)
 {
+  PRINT(LOG_INFO, "Entering method in_vector");
   if(v.empty()) return false;
 
   typename vector<T>::iterator it = v.begin();
@@ -20,6 +21,7 @@ bool in_vector(vector<T>& v, T data)
     it++;
   }
 
+  PRINT(LOG_INFO, "Exiting method in_vector");
   return false;
 }
 
@@ -29,6 +31,7 @@ bool in_vector(vector<T>& v, T data)
 template<typename T>
 void remove_from_vector(vector<T>& v, T data)
 {
+  PRINT(LOG_INFO, "Entering method remove_from_vector");
   if(v.empty()) return;
 
   typename vector<T>::iterator it = v.begin();
@@ -42,13 +45,15 @@ void remove_from_vector(vector<T>& v, T data)
     it++;
   }
 
-  cout<<" Element "<<data<<" not in vector \n";
+  PRINT(LOG_INFO, "Element "<<data<<" not in vector");
+  PRINT(LOG_INFO, "Exiting method remove_from_vector");
 }
 
 
 template<typename K, typename V>
 bool in_map(map<K, V>& m, K key)
 {
+  PRINT(LOG_INFO, "Entering method in_map");
   if(m.empty()) return false;
 
   typename map<K, V>::iterator it = m.begin();
@@ -60,7 +65,8 @@ bool in_map(map<K, V>& m, K key)
   }
 
 
-  cout<<"Element "<<key<<" not in map \n";
+  PRINT(LOG_INFO, "Element "<<key<<" not in map");
+  PRINT(LOG_INFO, "Exiting method in_map");
   return false;
 }
 
@@ -113,18 +119,20 @@ vector<string> strsplit(string s, string delim)
 
 string create_payload(vector<string> strings)
 {
+  PRINT(LOG_INFO, "Entering method create_payload");
   string pl;
   size_t n = strings.size();
   int i = 0;
   while(i < n-1)
   {
-    cout<<"appending "<<strings[i]<<endl;
+    //cout<<"appending "<<strings[i]<<endl;
     pl.append(strings[i]+" ");
     i++;
   }
   pl.append(strings[n-1]);
 
-  cout<<pl<<endl;
+  //cout<<pl<<endl;
+  PRINT(LOG_INFO, "Exiting method create_payload");
   return pl;
 }
 
@@ -139,10 +147,10 @@ string create_crack_payload(string hash, int task_num, map<int, string>& sub_tas
   strings.push_back(hash);
   strings.push_back(spl[0]);
   strings.push_back(spl[1]);
-  cout<<strings.size()<<endl;
+  //cout<<strings.size()<<endl;
 
   string s = create_payload(strings);
-  cout<<"Creating crack payload: "<<s<<endl;
+  //cout<<"Creating crack payload: "<<s<<endl;
   return s;
 }
 
@@ -178,22 +186,3 @@ vector<string> get_divisions(int* pwd_length, int* divisions)
   return divs;
 }
 
-
-/*int main(void)
-{
-  cout<<"h"<<endl;
-  vector<int> v1;
-  v1.push_back(1);
-  v1.push_back(2);
-  v1.push_back(3);
-  vector<char> v2;
-  v2.push_back('a');
-  cout<<inVector(v1, 3)<<endl;
-  cout<<inVector(v1, 6)<<endl;
-  cout<<inVector(v2, 'b')<<endl;
-
-  map<int, string> m;
-  m[1] = "one";
-  cout<<inMap(m, 1)<<endl;
-  return 0;
-}*/

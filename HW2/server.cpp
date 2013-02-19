@@ -60,7 +60,10 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
     PRINT(LOG_INFO, "The remaining sub_tasks for req "<<new_req<<" are: "+print_vector(sub_tasks_remaining[new_req]));
     i++;
   }
-  
+ 
+  //=== after we're done with new_req, remove it from cache
+  vector<int>::iterator it = request_cache.begin();
+  request_cache.erase(it);
   PRINT(LOG_DEBUG, "Exiting: ServerHandler::handle_crack");
 }
 
@@ -106,6 +109,7 @@ void ServerHandler::handle_join(lsp_server* svr,int worker_id)
 void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result)
 {
   PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_result");
+  PRINT(LOG_INFO, "The worker "<<worker_id<<" has returned");
 
   /* if result is PASS, just return the result to the requester and
    * assign a new request if exists to this worker

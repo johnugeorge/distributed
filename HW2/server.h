@@ -53,6 +53,7 @@ class ServerHandler
 
     void init_subtask_store(int pwd_len)
     {
+      PRINT(LOG_INFO, "Entering ServerHandler::init_subtask_store");
       if(!sub_task_store.empty())
         return;
 
@@ -64,12 +65,14 @@ class ServerHandler
         sub_task_store.insert(pair<int, string>(i+1, divs[i]));
         i++;
       }
+
+      PRINT(LOG_INFO, "Exiting ServerHandler::init_subtask_store");
     }
 
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
-      PRINT(LOG_INFO, "the worker "<<worker_id<<" has returned"); 
-      PRINT(LOG_INFO, "req divided map before");
+      PRINT(LOG_INFO, "Entering ServerHandler::remove_subtask");
+      PRINT(LOG_INFO, "Requests are currently divided as below.");
       print_current_request_divisions();
 
       //=== remove the assigned subtask
@@ -185,6 +188,9 @@ class ServerHandler
 
     void print_current_request_divisions()
     {
+      PRINT(LOG_DEBUG, "Entering ServerHandler::print_current_request_divisions");
+
+      PRINT(LOG_INFO, "Requests are currently divided as below.");
       map<int, vector<WorkerTask> >& m = request_divided;
       map<int, vector<WorkerTask> >::iterator it = m.begin();
       while(it != m.end())
