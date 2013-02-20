@@ -1,7 +1,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "lsp.h"
+#include "lsp_server.h"
 #include "server_utils.h"
 
 using namespace std;

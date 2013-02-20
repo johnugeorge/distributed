@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <time.h>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -41,6 +41,11 @@ typedef enum loglevels{
 
 extern int loglevel;
 extern std::ofstream outFile;
+
+extern pthread_mutex_t global_mutex;
+extern pthread_cond_t global_created;
+
+
 
 
 void lsp_set_epoch_lth(double lth);
@@ -130,93 +135,6 @@ typedef struct outbox_struct
 	pckt_fmt pkt;
 	int payload_size;
 }outbox_struct;
-
-
-typedef struct client_info
-{
-int conn_id;
-int socket_fd;
-int seq_no;
-struct sockaddr_storage addr;
-pckt_type last_pkt_rcvd;
-pckt_type last_pkt_sent;
-conn_type conn_state;
-pckt_fmt last_pckt_rcvd;
-pckt_fmt last_pckt_sent;
-Queue<inbox_struct> inbox_queue;
-Queue<outbox_struct> outbox_queue;
-conn_seqno_map conn_map;
-bool first_data_rcvd;
-bool first_data_sent;
-int last_seq_no_rcvd;
-int no_epochs_elapsed;
-client_info()
-{
-last_pckt_sent.data=NULL;
-seq_no=0;
-conn_state=CONN_WAIT;
-conn_id=0;
-last_seq_no_rcvd=0;
-first_data_rcvd=false;
-first_data_sent=false;
-no_epochs_elapsed=0;
-}
-} client_info;
-
-
-typedef struct lsp_client
-{
-pthread_mutex_t lock;
-int conn_id;
-int socket_fd;
-int seq_no;
-struct addrinfo* serv_info;
-pckt_type last_pkt_rcvd;
-pckt_type last_pkt_sent;
-conn_type conn_state;
-pckt_fmt last_pckt_rcvd;
-pckt_fmt last_pckt_sent;
-Queue<inbox_struct> inbox_queue;
-Queue<outbox_struct> outbox_queue;
-conn_seqno_map conn_map;
-bool first_data_rcvd;
-bool first_data_sent;
-int last_seq_no_rcvd;
-int no_epochs_elapsed;
-lsp_client()
-{
-last_pckt_sent.data=NULL;
-no_epochs_elapsed=0;
-conn_state=CONN_WAIT;
-seq_no=0;
-conn_id=0;
-last_seq_no_rcvd=0;
-first_data_rcvd=false;
-first_data_sent=false;
-last_pckt_sent.data=NULL;
-}
-} lsp_client;
-
-typedef std::map<int ,client_info*> client_info_map;
-
-lsp_client* lsp_client_create(const char* dest, int port);
-int lsp_client_read(lsp_client* a_client, uint8_t* pld);
-bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth);
-bool lsp_client_close(lsp_client* a_client);
-
-typedef struct lsp_server
-{
-client_info_map client_conn_info;
-Queue<inbox_struct> inbox_queue;
-pthread_mutex_t lock;
-int next_free_conn_id;
-int socket_fd;
-lsp_server()
-{
-	next_free_conn_id=1;
-}
-} lsp_server;
-
 
 typedef std::map<std::string, std::string> Configuration;
 extern Configuration config;
@@ -319,17 +237,6 @@ std::string print_map(std::map<K, V>& m)
 }
 
 
-lsp_server* lsp_server_create(int port);
-int  lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id);
-bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id);
-bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id);
-
 uint8_t* message_encode(int conn_id,int seq_no,const char* payload,int& outlength);
 int message_decode(int len,uint8_t* buf,pckt_fmt& pkt);
-void client_send(lsp_client* client,pckt_type pkt_type,int seq_no=0,const char *payload="",int length=0);
-void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int seq_no=0,const char *payload="",int length=0);
-void set_ack_status(lsp_client* client,conn_arg arg, bool value);
-void set_ack_status(lsp_server* server,client_info* client,conn_arg arg, bool value);
-bool get_ack_status(lsp_server* server,client_info* client,conn_arg arg);
-bool get_ack_status(lsp_client* client,conn_arg arg);
 

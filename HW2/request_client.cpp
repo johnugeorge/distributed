@@ -1,4 +1,4 @@
-#include "lsp.h"
+#include "lsp_client.h"
 #include<string>
 using namespace std;
 
@@ -58,6 +58,12 @@ int main(int argc, char** argv)
 	}
 	 PRINT(LOG_INFO,host<<" "<<port<<" "<<hash<<" "<<length);
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
+	if(myclient == NULL)
+	{
+		PRINT(LOG_CRIT," No Connection to Server ");
+		return 0;
+	}
+
 	for(int l=0;l<length;l++)
 	{
 		lower=lower+"a";

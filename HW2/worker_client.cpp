@@ -1,4 +1,4 @@
-#include "lsp.h"
+#include "lsp_client.h"
 #include<string>
 #include <openssl/sha.h>
 
@@ -146,6 +146,13 @@ int main(int argc, char** argv)
 	}
 	PRINT(LOG_INFO,host<<" "<<port);
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
+
+	if(myclient == NULL)
+	{
+		PRINT(LOG_CRIT," No Connection to Server ");
+		return 0;
+	}
+
 	const char join_message[]="j";
 	lsp_client_write(myclient, (uint8_t*) join_message, strlen(join_message));
 	

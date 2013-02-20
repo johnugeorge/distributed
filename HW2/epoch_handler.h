@@ -2,7 +2,8 @@
 #include<sys/socket.h>
 #include<sys/time.h>
 #include<error.h>
-#include"lsp.h"
+#include"lsp_server.h"
+#include"lsp_client.h"
 
 
 void c_epoch_timer(void*);
