@@ -11,10 +11,11 @@ ofstream outFile("server.txt");
 
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
 
-ServerHandler::ServerHandler()
+ServerHandler::ServerHandler(int d)
 {
-  divisions = 13;
+  divisions = d;
 }
+
 
 /*
  * method to handle new crack requests
@@ -39,6 +40,15 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
     return;
   }
 
+  serve_cached_request(svr);
+}
+
+
+/*
+ * this method pops off the front of the request queue, and serves it
+ */
+void ServerHandler::serve_cached_request(lsp_server* svr)
+{
   int new_req = request_cache.front();
   PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache\n");
   string h = request_store[new_req]; //can potentially cause a bug
@@ -69,6 +79,7 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   request_cache.erase(it);
   PRINT(LOG_DEBUG, "Exiting: ServerHandler::handle_crack");
 }
+
 
 /*
  * method to handle new join requests
@@ -345,7 +356,7 @@ int main(int argc, char** argv)
   srand(12345);
 
   lsp_server* myserver = lsp_server_create(atoi(argv[1]));
-  ServerHandler* svr_handler = new ServerHandler();
+  ServerHandler* svr_handler = new ServerHandler(13);
 
   uint8_t payload[MAX_PAYLOAD_SIZE];
   uint32_t returned_id;

@@ -43,6 +43,7 @@ class ServerHandler
     map<int, int> worker_to_request;
     map<int, vector<WorkerTask> > request_divided;
     map<int, vector<int> > sub_tasks_remaining;
+    map<int, vector<int> > sub_tasks_completed;
     vector<int> requests_in_progress;
     vector<int> free_workers;
     vector<int> request_cache;
@@ -94,11 +95,17 @@ class ServerHandler
 
       if(vit1 == v1.end())
         PRINT(LOG_INFO, "Worker Id "<<worker_id<<" not found");
-      
+     
+      int task = worker_task[worker_id];
+      vector<int> v = sub_tasks_completed[req_id];
+      v.push_back(task);
+      sub_tasks_completed[req_id].swap(v);
+
       print_current_request_divisions();
 
       //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
+      map<int, vector<int> >::iterator it3 = sub_tasks_completed.find(req_id);
       vector<int> v2 = it2->second;
       /*vector<int>::iterator vit2 = v2.begin();
       while(vit2 != v2.end())
@@ -115,7 +122,7 @@ class ServerHandler
         cout<<"task num Not found \n";
       */
       bool last_subtask = false;
-      if(v2.empty())
+      if(is_request_complete(req_id))
         last_subtask = true;
 
       //=== other removals
@@ -141,6 +148,7 @@ class ServerHandler
         //and sub tasks remaining
         request_divided.erase(it1);
         sub_tasks_remaining.erase(it2);
+        sub_tasks_completed.erase(it3);
       }
 
       PRINT(LOG_INFO, "Exiting ServerHandler::remove_subtask");
@@ -213,14 +221,30 @@ class ServerHandler
       PRINT(LOG_INFO, "Exiting print_current_request_divisions");
     }
 
+    /* method to check if all the sub tasks of a particular req have 
+     * returned 
+     */
+    bool is_request_complete(int req_id)
+    {
+      PRINT(LOG_DEBUG, "Entering method is_request_complete");
+      vector<int> v = sub_tasks_completed[req_id];
+      bool b = false;
+      if(v.size() == divisions)
+        b = true;
+
+      PRINT(LOG_DEBUG, "Result: "<<b<<" for request: "<<req_id);
+      PRINT(LOG_DEBUG, "Exiting method is_request_complete");
+      return b;
+    }
+
   public:
-    ServerHandler();
+    ServerHandler(int);
     void handle_crack(lsp_server*, int req_id, uint8_t* req);
     void handle_join(lsp_server*, int worker_id);
     void handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result);
     void handle_dead_client(lsp_server*, int conn_id);
     void register_new_task(int worker_id, int req_id, int task);
-    //bool is_task_available();
+    void serve_cached_request(lsp_server*);
     void cache_new_req(int req_id, string request);
     void handle();
 };
