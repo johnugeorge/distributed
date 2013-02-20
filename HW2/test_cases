@@ -1,5 +1,8 @@
 a) 1 worker joins. request joins 
 
+   Passwords in all buckets
+
+
 b)2 worker joins ,. request joins
 
 c)1 worker joins. request joins and gets result. another request joins and gets result
