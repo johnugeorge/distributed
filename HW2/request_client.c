@@ -3,7 +3,7 @@
 using namespace std;
 
 
-ofstream outFile("request_client.txt");
+ofstream outFile("request_client.log");
 bool handle_read(uint8_t* buffer)
 {
    string str((const char*)buffer);

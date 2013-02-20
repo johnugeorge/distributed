@@ -1,9 +1,12 @@
 a) 1 worker joins. request joins 
 
    Passwords in all buckets
-
+ 
+done for len=3,5
 
 b)2 worker joins ,. request joins
+
+done for len=3,5
 
 c)1 worker joins. request joins and gets result. another request joins and gets result
 

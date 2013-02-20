@@ -7,7 +7,7 @@
 
 using namespace std;
 
-ofstream outFile("server.txt");
+ofstream outFile("server.log");
 
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
 
