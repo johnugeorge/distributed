@@ -16,7 +16,7 @@ static char timeStr[TIME_STR_MAX_SIZE];
 	if(a>=loglevel) \
 {\
 	cout<<b<<std::endl<<std::flush;\
-	outFile<<b;\
+	outFile<<b<<std::endl<<std::flush;\
 }
 
 
