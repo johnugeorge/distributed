@@ -194,10 +194,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
   else
   {
     //there is a req in the cache that can begin working now
-    //int req_id = request_cache.front();
-    //lsp_server_write(worker_id, 0); //and also the hash string 
-    //register_new_task(worker_id, req_id, 0);
-    return;
+    serve_cached_request(svr);
   }
 }
 
