@@ -4,7 +4,6 @@
 #include <string>
 #include "common_utils.h"
 
-
 using namespace std;
 template<typename T> bool in_vector(vector<T>& v);
 template<typename K, typename V> bool in_map(map<K, V>& m);
@@ -140,11 +139,11 @@ string create_payload(vector<string> strings)
 }
 
 
-string create_crack_payload(string hash, int task_num, map<int, string>& sub_task_map)
+string create_crack_payload(string hash, int task_num, map<int, string> store)
 {
   vector<string> strings;
   string c("c");
-  string sub_task = sub_task_map[task_num];
+  string sub_task = store[task_num];
   vector<string> spl = strsplit(sub_task, "-");
   strings.push_back(c);
   strings.push_back(hash);
@@ -161,12 +160,27 @@ string create_crack_payload(string hash, int task_num, map<int, string>& sub_tas
 vector<string> get_divisions(int* pwd_length, int* divisions)
 {
   int p = *pwd_length;
-  int d = *divisions;
+  int d = 13;
+  if(divisions != NULL)
+    d = *divisions;
+
   int skip = d == 13 ? 1 : 0;
 
   string hyphen("-");
   char first = 'a';
   char last = 'z';
+
+  if(p <= 3)
+  {
+    //=== make only one division
+    vector<string> v;
+    string div;
+    div.append(p, first);
+    div.append(hyphen);
+    div.append(p, last);
+    v.push_back(div);
+    return v;
+  }
 
   int j = 0;
   char first_copy = first;

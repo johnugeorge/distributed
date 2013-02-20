@@ -36,6 +36,60 @@ class WorkerTask
     }
 };
 
+
+class SubTaskStore
+{
+  /*
+   * All subtasks start from 1
+   */
+  public:
+    SubTaskStore(int req, int pwd_len) : req_id(req), pwd_length(pwd_len)
+    { init(); }
+
+    vector<int> new_sub_task_list()
+    {
+      return sub_task_names;
+    }
+
+    int size()
+    {
+      //=== once sub_task_names is created, it is not changed.
+      //=== to check if a request has finished all its subtasks, the caller needs to check 
+      //=== if the no of sub tasks completed are equal to the value returned here
+      return (int)sub_task_names.size();
+    }
+
+    string sub_task(int task_name)
+    {
+      return sub_tasks[task_name];
+    }
+
+    map<int, string> sub_task_map()
+    {
+      return sub_tasks;
+    }
+
+  private:
+    map<int, string> sub_tasks;
+    vector<int> sub_task_names;
+    int req_id;
+    int pwd_length;
+
+    void init()
+    {
+      vector<string> v = get_divisions(&pwd_length, NULL);
+      size_t n = v.size();
+      int i = 0;
+      while(i < n)
+      {
+        sub_tasks.insert(pair<int, string>(i+1, v[i]));
+        sub_task_names.push_back(i+1);
+        i++;
+      }
+    }
+};
+
+
 class ServerHandler
 {
   private:
@@ -50,22 +104,21 @@ class ServerHandler
     map<int, string> request_store;
     
     int divisions;
-    map<int, string> sub_task_store;
+    map<int, SubTaskStore*> sub_task_store;
 
-    void init_subtask_store(int pwd_len)
+
+    /*
+     * initializes the subtask store for a particular request, based on the pwd length
+     */
+    void init_subtask_store(int req_id, int pwd_len)
     {
       PRINT(LOG_INFO, "Entering ServerHandler::init_subtask_store");
-      if(!sub_task_store.empty())
-        return;
+      //if(!sub_task_store.empty())
+      //  return;
 
-      vector<string> divs = get_divisions(&pwd_len, &divisions);
-      size_t n = divs.size();
-      int i = 0;
-      while(i < n)
-      {
-        sub_task_store.insert(pair<int, string>(i+1, divs[i]));
-        i++;
-      }
+      //vector<string> divs = get_divisions(&pwd_len, &divisions);
+      SubTaskStore* store = new SubTaskStore(req_id, pwd_len);
+      sub_task_store.insert(pair<int, SubTaskStore*>(req_id, store));
 
       PRINT(LOG_INFO, "Exiting ServerHandler::init_subtask_store");
     }

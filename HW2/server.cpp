@@ -27,11 +27,10 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   vector<string> spl = strsplit(crack_req, " ");
   string req = spl[1]; //this is the hash
   string lower = spl[2];
-  init_subtask_store(lower.length());
+  init_subtask_store(req_id, lower.length());
 
   //PRINT(LOG_INFO, "Subtask store: ");
   //PRINT(LOG_INFO, print_map(sub_task_store));
-
   cache_new_req(req_id, req);
   if(free_workers.empty())
   {
@@ -50,13 +49,14 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
 void ServerHandler::serve_cached_request(lsp_server* svr)
 {
   int new_req = request_cache.front();
+  //SubTaskStore store = sub_task_store[new_req];
   PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache\n");
   string h = request_store[new_req]; //can potentially cause a bug
   int i = 0;
   bool success = false;
   
   //=== init some data structures
-  sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, new_sub_task_list(&divisions)));  
+  sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, sub_task_store[new_req]->new_sub_task_list()));  
   requests_in_progress.push_back(new_req);
   PRINT(LOG_INFO, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
   PRINT(LOG_INFO, "For request: "<<new_req<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[new_req]));
@@ -65,8 +65,9 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
   while(!free_workers.empty() && i < sub_tasks_remaining[new_req].size())
   {
     int w = free_workers.front(); //this is also a pop
+    //SubTaskStore store = sub_task_store[new_req];
     int task_num = sub_tasks_remaining[new_req].front();
-    string pl = create_crack_payload(h, task_num, sub_task_store);
+    string pl = create_crack_payload(h, task_num, sub_task_store[new_req]->sub_task_map());
     PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<pl.length()+1);
     lsp_server_write(svr, (void*)pl.c_str(), pl.length(), w);
     register_new_task(w, new_req, task_num);
@@ -176,7 +177,8 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     if(!s.empty())
     {
       int t = s.front();
-      string pl = create_crack_payload(request_store[r], t, sub_task_store);
+      //SubTaskStore store = sub_task_store[r];
+      string pl = create_crack_payload(request_store[r], t, sub_task_store[r]->sub_task_map());
       PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
       register_new_task(worker_id, r, t);
