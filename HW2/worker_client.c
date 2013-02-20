@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ofstream outFile("worker_client.txt");
+ofstream outFile("worker_client.log");
 string findReverseHash(string hash_str,string lower,string upper)
 {
 	string start=lower;
