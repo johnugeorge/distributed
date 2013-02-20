@@ -9,15 +9,15 @@ bool handle_read(uint8_t* buffer)
    string str((const char*)buffer);
    if(buffer[0] == 'f')
    {
-      cout<<" Found: "<<str.substr(2)<<"\n";
+      PRINT(LOG_INFO," Found: "<<str.substr(2));
    }
    else if (buffer[0] == 'x')
    {
-      cout<<" Not Found \n";
+       PRINT(LOG_INFO," Not Found ");
    }
    else
    {
-      cout<<" Unknown message Type "<<buffer[0]<<"\n";
+       PRINT(LOG_INFO," Unknown message Type "<<buffer[0]);
       return false;
    }
    return true;
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 		PRINT(LOG_INFO, " Wrong Arguments. Usage ./request host:port hash len\n");
 		exit(0);
 	}
-	cout<<host<<" "<<port<<" "<<hash<<" "<<length<<"\n";
+	 PRINT(LOG_INFO,host<<" "<<port<<" "<<hash<<" "<<length);
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
 	for(int l=0;l<length;l++)
 	{
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	        upper=upper+"z";
 	}
 	string crack_msg= string("c")+" "+hash+" "+lower+" "+upper;
-	cout<<" Crack Message "<<crack_msg<<"\n";
+	PRINT(LOG_INFO," Crack Message "<<crack_msg);
 	lsp_client_write(myclient, (uint8_t*) crack_msg.c_str(), strlen(crack_msg.c_str()));
 	int result_not_recvd=false;
 	while(1) {

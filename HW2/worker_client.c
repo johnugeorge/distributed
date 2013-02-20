@@ -76,12 +76,12 @@ string findReverseHash(string hash_str,string lower,string upper)
 	{
                 res.append("f ");
                 res.append(start);
-		cout<<" Found: "<<start<<"\n";
+		PRINT(LOG_INFO," Found: "<<start);
 	}
 	else
 	{
                 res.append("x");
-		cout<<" Not Found \n";
+		PRINT(LOG_INFO," Not Found ");
 
 	}
 
@@ -89,7 +89,7 @@ string findReverseHash(string hash_str,string lower,string upper)
 }
 string handle_read(uint8_t* buffer)
 {
-cout<<" Message Type "<<buffer[0]<<"\n";
+PRINT(LOG_INFO," Message Type "<<buffer[0]);
 vector<string> tokens;
 if(buffer[0]=='c')
 {
@@ -110,10 +110,10 @@ if(buffer[0]=='c')
 }
 else
 {
-	cout<<"Unknown Message type "<<buffer[0]<<" for worker \n";
+	PRINT(LOG_INFO,"Unknown Message type "<<buffer[0]<<" for worker");
 	return "";
 }
-	 cout<<tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]<<"\n";
+	 PRINT(LOG_INFO,tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]);
 return findReverseHash(tokens[1],tokens[2],tokens[3]);
 }
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 	{
 		PRINT(LOG_INFO, " Wrong Arguments. Usage ./worker host:port \n");
 	}
-	cout<<host<<" "<<port<<"\n";
+	PRINT(LOG_INFO,host<<" "<<port);
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
 	const char join_message[]="j";
 	lsp_client_write(myclient, (uint8_t*) join_message, strlen(join_message));
