@@ -185,6 +185,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     }
   }
    
+
   if(request_cache.empty())
   {
     //either no req is in progress or no task is left
@@ -194,6 +195,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
   else
   {
     //there is a req in the cache that can begin working now
+    free_workers.push_back(worker_id);
     serve_cached_request(svr);
   }
 }
