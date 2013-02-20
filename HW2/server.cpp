@@ -50,7 +50,7 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
 {
   int new_req = request_cache.front();
   //SubTaskStore store = sub_task_store[new_req];
-  PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache\n");
+  PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache");
   string h = request_store[new_req]; //can potentially cause a bug
   int i = 0;
   bool success = false;
@@ -85,16 +85,23 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
 /*
  * method to handle new join requests
  */
-void ServerHandler::handle_join(lsp_server* svr,int worker_id)
+void ServerHandler::handle_join(lsp_server* svr, int worker_id)
 {
   PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_join");
-  for(int r = 0; r < requests_in_progress.size(); r++)
+  PRINT(LOG_INFO, "Worker "<<worker_id<<" is going to join");
+  PRINT(LOG_INFO, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
+
+  for(int i=0; i<requests_in_progress.size(); i++)
   {
+    int r=requests_in_progress[i];
     vector<int> s = sub_tasks_remaining[r];
     if(!s.empty())
     {
       int t = s.front();
-      //lsp_server_write(worker_id, t) //and also the hash string
+      string h = request_store[r];
+      string pl = create_crack_payload(h, t, sub_task_store[r]->sub_task_map());
+      PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
+      lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
       register_new_task(worker_id, r, t);
       return;
     }
@@ -102,16 +109,15 @@ void ServerHandler::handle_join(lsp_server* svr,int worker_id)
    
   if(request_cache.empty())
   {
-    //either no req is in progress or no task is left
+    //No request is in progress and no task is left
+    PRINT(LOG_INFO, "No request is in progress and no task is left");
     free_workers.push_back(worker_id);
   }
   else
   {
     //there is a req in the cache that can begin working now
-    int req_id = request_cache.front();
-    //lsp_server_write(worker_id, 0); //and also the hash string 
-    register_new_task(worker_id, req_id, 0);
-    return;
+    free_workers.push_back(worker_id);
+    serve_cached_request(svr);
   }
 
   PRINT(LOG_DEBUG, "Exiting: ServerHandler::handle_join");
@@ -131,7 +137,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
    *
    * if it is FAIL, then wait for all other msgs to arrive
    */
-
+  
   int req_id = worker_to_request[worker_id];
   if(!in_vector(requests_in_progress, req_id))
   {
@@ -165,8 +171,8 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     }
   }
 
-  //now this worker is free; it can be given a new task
-  PRINT(LOG_INFO, "Worker "<<worker_id<<" is free; can be given a new task");
+  //=== now this worker is free; it can be given a new task
+  PRINT(LOG_INFO, "Worker "<<worker_id<<" is free. It can be given a new task.");
   PRINT(LOG_INFO, "Current requests in progress: "<<print_vector(requests_in_progress));
   for(int i=0; i<requests_in_progress.size(); i++)
   {
@@ -187,7 +193,6 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     }
   }
    
-
   if(request_cache.empty())
   {
     //either no req is in progress or no task is left

@@ -123,10 +123,10 @@ class ServerHandler
       PRINT(LOG_INFO, "Exiting ServerHandler::init_subtask_store");
     }
 
+
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
       PRINT(LOG_INFO, "Entering ServerHandler::remove_subtask");
-      //PRINT(LOG_INFO, "Requests are currently divided as below.");
       print_current_request_divisions();
 
       //=== remove the assigned subtask
@@ -147,7 +147,7 @@ class ServerHandler
       }
 
       if(vit1 == v1.end())
-        PRINT(LOG_INFO, "Worker Id "<<worker_id<<" not found");
+        PRINT(LOG_INFO, "Worker id "<<worker_id<<" not found");
      
       int task = worker_task[worker_id];
       vector<int> v = sub_tasks_completed[req_id];
@@ -156,7 +156,6 @@ class ServerHandler
 
       print_current_request_divisions();
 
-      //=== remove the entry from sub tasks remaining
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       map<int, vector<int> >::iterator it3 = sub_tasks_completed.find(req_id);
       vector<int> v2 = it2->second;
@@ -182,7 +181,7 @@ class ServerHandler
       worker_task.erase(worker_id);
       worker_to_request.erase(worker_id);
 
-      //=== do more things if this was the last remaining subtask or a success
+      //=== do more things if this was the last subtask completed or a success
       if(last_subtask || result == PASS)
       {
         vector<int>::iterator vit3 = requests_in_progress.begin();
