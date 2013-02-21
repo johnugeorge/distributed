@@ -32,6 +32,7 @@ void c_network_handler(void* p)
 	  pkt_save=0;
 	  addr_len = sizeof their_addr;
 	  PRINT(LOG_DEBUG,"Waitng in client recv\n");
+	  if(client->closed == true)continue;
 	  if ((numbytes = recvfrom(client->socket_fd, raw_buf, sizeof(raw_buf), 0,
 					  (struct sockaddr *)&their_addr, &addr_len)) == -1) {
 		  perror("recvfrom");

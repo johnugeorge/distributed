@@ -249,7 +249,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
     worker = true;
     req_id = worker_to_request[conn_id];
   }
-  
+  PRINT(LOG_INFO, " req_Id "<<req_id<<" conn _Id "<<conn_id<<" worker "<<worker<<" free workers "<<print_vector(free_workers)); 
   if(worker)
   {
     /* this is a worker who has just been discovered to be dead; need to re-assign the task to another worker and modify the registry for this worker*/

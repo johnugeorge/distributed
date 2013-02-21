@@ -20,6 +20,7 @@ bool first_data_rcvd;
 bool first_data_sent;
 int last_seq_no_rcvd;
 int no_epochs_elapsed;
+bool closed;
 lsp_client()
 {
 last_pckt_sent.data=NULL;
@@ -27,6 +28,7 @@ no_epochs_elapsed=0;
 conn_state=CONN_WAIT;
 seq_no=0;
 conn_id=0;
+closed=false;
 last_seq_no_rcvd=0;
 first_data_rcvd=false;
 first_data_sent=false;

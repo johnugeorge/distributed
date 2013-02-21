@@ -37,6 +37,7 @@ void c_epoch_timer(void* p)
 void c_handle_epoch(lsp_client* client)
 {
   PRINT(LOG_DEBUG,"Client epoch timer"<<std::endl);
+  if(client->closed == true)return;
   int count=client->no_epochs_elapsed;
   count++;
   if(count == lsp_get_epoch_cnt())

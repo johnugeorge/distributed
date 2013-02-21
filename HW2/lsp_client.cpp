@@ -158,6 +158,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
 bool lsp_client_close(lsp_client* a_client)
 {
        // pthread_join(client_epoch, NULL);
+        a_client->closed=true;
 	close(a_client->socket_fd);
 }
 

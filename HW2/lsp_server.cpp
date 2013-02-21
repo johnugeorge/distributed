@@ -114,6 +114,11 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 	else
 	{
 		conn_arg conn_argv;
+		if(a_srv->client_conn_info.find(conn_id) == a_srv->client_conn_info.end())
+		{
+			PRINT(LOG_INFO," Server read::No Client Exists for conn Id "<<conn_id);
+			exit(1);
+		}
 		client_info* a_client=a_srv->client_conn_info[conn_id];
 		if( a_client ==NULL)
 		{
@@ -161,8 +166,13 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 
 bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 {
- a_srv->client_conn_info.erase(conn_id);
- //close(a_srv->socket_fd);
+	if(a_srv->client_conn_info.find(conn_id) == a_srv->client_conn_info.end())
+	{
+		PRINT(LOG_INFO," Server close::No Client Exists for conn Id "<<conn_id);
+		exit(1);
+	}
+
+	a_srv->client_conn_info.erase(conn_id);
 }
 
 void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int seq_no,const char *payload,int length)
@@ -171,6 +181,12 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	uint8_t* buff;
 	int len =0 ;
 	char* s="NIL";
+	if(server->client_conn_info.find(client_conn_id) == server->client_conn_info.end())
+	{
+		PRINT(LOG_INFO," Server Send::No Client Exists for conn Id "<<client_conn_id);
+		exit(1);
+	}
+
 	client_info* client_conn=server->client_conn_info[client_conn_id];
 	PRINT(LOG_DEBUG," In server send "<<client_conn->conn_id<<" \n");
 	pckt_fmt pkt;

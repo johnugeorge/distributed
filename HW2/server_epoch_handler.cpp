@@ -52,6 +52,7 @@ void s_handle_epoch(lsp_server* server)
 			inbox.payload_size=0;
 			inbox.pkt.conn_id=client->conn_id;
 			server->inbox_queue.putq(inbox);
+			continue;
 			//	exit(0);
 
 		}
