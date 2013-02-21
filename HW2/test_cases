@@ -4,12 +4,12 @@ a) 1 worker joins. request joins
  
 done for len=3,5
 
-b)2 worker joins ,. request joins
+b) 2 worker joins, request joins
 
 done for len=3,5
 
-c)1 worker joins. request joins and gets result. another request joins and gets result
+c) 1 worker joins. request joins and gets result. another request joins and gets result
 
-d)2 worker joins. request joins and gets result. another request joins and gets result
+d) 2 worker joins. request joins and gets result. another request joins and gets result
 
 e) a)-d) opposite with request joining first
