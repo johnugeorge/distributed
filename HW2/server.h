@@ -184,17 +184,20 @@ class ServerHandler
       //=== do more things if this was the last subtask completed or a success
       if(last_subtask || result == PASS)
       {
-        vector<int>::iterator vit3 = requests_in_progress.begin();
-	while(vit3 != requests_in_progress.end())
-	{
-          if((*vit3) == req_id)
-	  {
-            requests_in_progress.erase(vit3);
-            PRINT(LOG_INFO, "Request "<<(*vit3)<<" is not in progress anymore");
-            break;
+        if(in_vector(requests_in_progress, req_id))
+        {
+          vector<int>::iterator vit3 = requests_in_progress.begin();
+	  while(vit3 != requests_in_progress.end())
+          {
+            if((*vit3) == req_id)
+	    {
+              requests_in_progress.erase(vit3);
+              PRINT(LOG_INFO, "Request "<<(*vit3)<<" is not in progress anymore");
+              break;
+	    }
+            vit3++;
 	  }
-          vit3++;
-	}
+        }
 
         //completely wipe out the entry of this request in requests assigned 
         //and sub tasks remaining

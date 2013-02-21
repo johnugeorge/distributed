@@ -139,18 +139,20 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
    */
   
   int req_id = worker_to_request[worker_id];
+  bool ignore_result = false;
   if(!in_vector(requests_in_progress, req_id))
   {
     //this means the req_id client could be dead; 
     //or the result of PASS was already sent back to client; so just ignore the result
     PRINT(LOG_INFO, "Ignoring result");
-    return;
+    ignore_result = true;
   }
-    
+  
+  //=== cleanup tasks
   remove_subtask(req_id, worker_id, result);
 
-  //if this req has been removed from request_in_progress, then it means that either all subtasks returned fail or a pass was just found
-  if(!in_vector(requests_in_progress, req_id))
+  //===if this req has been removed from request_in_progress, then it means that either all subtasks returned fail or a pass was just found
+  if(!in_vector(requests_in_progress, req_id) && !ignore_result)
   {
     if(result == PASS)
     {
@@ -355,7 +357,12 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 
 int main(int argc, char** argv) 
 {
-  /*lsp_set_drop_rate(_DROP_RATE);
+  if(argc != 2)
+  {
+    PRINT(LOG_CRIT, "Usage: ./server <port_num>");
+    exit(1);
+  }
+    /*lsp_set_drop_rate(_DROP_RATE);
   lsp_set_epoch_cnt(_EPOCH_CNT);
   lsp_set_epoch_lth(_EPOCH_LTH);*/
   initialize_configuration();
