@@ -176,7 +176,7 @@ inline void initialize_configuration()
 template<typename T>
 std::string print_vector(std::vector<T>& v)
 {
-  if(v.empty()) return "";
+  if(v.empty()) return "[]";
 
   typename std::vector<T>::iterator it = v.begin();
   std::string res;
@@ -199,7 +199,7 @@ std::string print_vector(std::vector<T>& v)
 template<typename K, typename V>
 std::string print_vector_map(std::map<K, std::vector<V> >& m)
 {
-  if(m.empty()) return "";
+  if(m.empty()) return "{}";
 
   typename std::map<K, std::vector<V> >::iterator it = m.begin();
   std::string res;
@@ -221,14 +221,14 @@ std::string print_vector_map(std::map<K, std::vector<V> >& m)
 template<typename K, typename V>
 std::string print_map(std::map<K, V>& m)
 {
-  if(m.empty()) return "";
+  if(m.empty()) return "{}";
 
   typename std::map<K, V>::iterator it = m.begin();
   std::string res;
   while(it != m.end())
   {
     std::stringstream ss;
-    ss<<it->first<<" = "<<it->second<<"\n";
+    ss<<it->first<<"="<<it->second<<"\n";
     res.append(ss.str());
     it++;
   }

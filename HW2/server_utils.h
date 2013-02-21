@@ -7,6 +7,8 @@
 using namespace std;
 template<typename T> bool in_vector(vector<T>& v);
 template<typename K, typename V> bool in_map(map<K, V>& m);
+template<typename T> void remove_from_vector(vector<T>& v, T data);
+template<typename K, typename V> void remove_from_map(map<K, V>& m, K key);
 
 template<typename T> 
 bool in_vector(vector<T>& v, T data)
@@ -41,6 +43,7 @@ void remove_from_vector(vector<T>& v, T data)
     if((*it) == data)
     {
       v.erase(it);
+      PRINT(LOG_INFO, "Element "<<data<<" deleted");
       return;
     }
     it++;
@@ -48,6 +51,28 @@ void remove_from_vector(vector<T>& v, T data)
 
   PRINT(LOG_INFO, "Element "<<data<<" not in vector");
   PRINT(LOG_INFO, "Exiting method remove_from_vector");
+}
+
+
+template<typename K, typename V>
+void remove_from_map(map<K, V>& m, K key)
+{
+  PRINT(LOG_INFO, "Entering method remove_from_map");
+  if(m.empty()) return;
+
+  typename map<K, V>::iterator it = m.begin();
+  while(it != m.end())
+  {
+    if(it->first == key)
+    {
+      m.erase(it);
+      return;
+    }
+    it++;
+  }
+
+  PRINT(LOG_INFO, "Element "<<key<<" not in map");
+  PRINT(LOG_INFO, "Exiting method remove_from_map");
 }
 
 

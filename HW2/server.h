@@ -1,6 +1,7 @@
 #include <map>
 #include <string>
 #include <vector>
+//#include <sstream>
 #include "lsp_server.h"
 #include "server_utils.h"
 
@@ -127,7 +128,8 @@ class ServerHandler
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
       PRINT(LOG_INFO, "Entering ServerHandler::remove_subtask");
-      print_current_request_divisions();
+      print_state();
+      //print_current_request_divisions();
 
       //=== remove the assigned subtask
       map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
@@ -206,6 +208,7 @@ class ServerHandler
         sub_tasks_completed.erase(it3);
       }
 
+      print_state();
       PRINT(LOG_INFO, "Exiting ServerHandler::remove_subtask");
     }
 
@@ -216,6 +219,8 @@ class ServerHandler
        */
 
       PRINT(LOG_INFO, "Entering ServerHandler::restore_subtask");
+      print_state();
+      
       int task_num = worker_task[prev_worker_id];
       if(free_workers.empty())
       {
@@ -242,6 +247,7 @@ class ServerHandler
         v2.push_back(task_num);
       }
 
+      print_state();
       PRINT(LOG_INFO, "Exiting ServerHandler::restore_subtask");
     }
 
@@ -253,27 +259,45 @@ class ServerHandler
     void print_current_request_divisions()
     {
       PRINT(LOG_DEBUG, "Entering ServerHandler::print_current_request_divisions");
+      
+      if(request_divided.empty())
+      {
+        PRINT(LOG_DEBUG, "No requests divisions at the moment");
+        return;
+      }
 
-      PRINT(LOG_INFO, "Requests are currently divided as below.");
+      PRINT(LOG_DEBUG, "Requests are currently divided as below.");
       map<int, vector<WorkerTask> >& m = request_divided;
       map<int, vector<WorkerTask> >::iterator it = m.begin();
+      stringstream ss;
       while(it != m.end())
       {
         vector<WorkerTask> v = it->second;
         size_t n = v.size();
         int i = 0;
-        PRINT(LOG_INFO, it->first<<" = ");
-        while(i < n)
+        ss<<"Request "<<it->first<<" = ";
+        if(n == 0)
         {
-          WorkerTask w = v[i];
-          cout<<"<"<<w.conn_id<<", "<<w.task_num<<"> :: ";
-          i++;
+          ss<<"[]\n";
+          PRINT(LOG_DEBUG, ss.str());
         }
-        cout<<endl;
+        else
+        {
+          while(i < n)
+          {
+            WorkerTask w = v[i];
+            ss<<"<"<<"Worker "<<w.conn_id<<", Task "<<w.task_num<<"> ";
+            //cout<<"<"<<"Worker "<<w.conn_id<<", Task "<<w.task_num<<"> ";
+            i++;
+          }
+          ss<<"\n";
+        }
+        //cout<<endl;
         it++;
       }
 
-      PRINT(LOG_INFO, "Exiting print_current_request_divisions");
+      PRINT(LOG_DEBUG, ss.str());
+      PRINT(LOG_DEBUG, "Exiting print_current_request_divisions");
     }
 
     /* method to check if all the sub tasks of a particular req have 
@@ -302,9 +326,5 @@ class ServerHandler
     void serve_cached_request(lsp_server*);
     void cache_new_req(int req_id, string request);
     void handle();
+    void print_state();
 };
-
-
-
-
-

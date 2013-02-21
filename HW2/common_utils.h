@@ -8,7 +8,8 @@ static char timeStr[TIME_STR_MAX_SIZE];
 
 
 //#define cout std::cout<<getTimeStr()<<thread_info_map[pthread_self()]<<" : " 
-#define cout std::cout
+#define cout std::cout<<getTimeStr()<<" : " 
+//#define cout std::cout
 
 #define COUT cout
 
@@ -16,8 +17,10 @@ static char timeStr[TIME_STR_MAX_SIZE];
 	if(a>=loglevel) \
 {\
 	cout<<b<<std::endl<<std::flush;\
-	outFile<<b<<std::endl<<std::flush;\
-}
+	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
+}\
+else\
+	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
 
 
 
