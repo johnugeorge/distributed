@@ -98,7 +98,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			 return -1;
 		 }
          }
-
+	 return 0;
  }
 
 }
