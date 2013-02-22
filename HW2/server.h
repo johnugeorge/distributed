@@ -88,6 +88,13 @@ class SubTaskStore
         i++;
       }
     }
+
+    string to_string()
+    {
+      //stringstream ss;
+      //ss<<"Request "<<req_id<<" = "<<print_vector(sub_task_names);
+      return print_vector(sub_task_names);
+    }
 };
 
 

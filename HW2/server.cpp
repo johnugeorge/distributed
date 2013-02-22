@@ -236,10 +236,11 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
   
   bool worker = false;
   int req_id = conn_id;
-  
+ 
+  PRINT(LOG_CRIT, "Client "<<conn_id<<" is dead");
   if(in_vector(free_workers, conn_id))
   {
-    PRINT(LOG_INFO, "Handling the death of client "<<conn_id<<" who is a free worker");
+    PRINT(LOG_CRIT, "Client "<<conn_id<<" was a free worker");
     remove_from_vector(free_workers, conn_id);
     return;
   }
@@ -249,11 +250,12 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
     worker = true;
     req_id = worker_to_request[conn_id];
   }
-  PRINT(LOG_INFO, " req_Id "<<req_id<<" conn _Id "<<conn_id<<" worker "<<worker<<" free workers "<<print_vector(free_workers)); 
+  
+  PRINT(LOG_DEBUG, "req_id "<<req_id<<" conn _Id "<<conn_id<<" worker "<<worker<<" free workers "<<print_vector(free_workers)); 
   if(worker)
   {
     /* this is a worker who has just been discovered to be dead; need to re-assign the task to another worker and modify the registry for this worker*/
-    PRINT(LOG_INFO, "Handling the death of client "<<req_id<<" who is a worker");
+    PRINT(LOG_CRIT, "Client "<<conn_id<<" was an occupied worker");
     int task_num = worker_task[conn_id];
     
     vector<WorkerTask> v = request_divided[req_id];
@@ -263,13 +265,14 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
       if((*it).conn_id == conn_id)
       {
         v.erase(it);
+        PRINT(LOG_DEBUG, "Entry "<<conn_id<<" deleted");
         break;
       }
       it++;
     }
 
-    if(it == v.end())
-      PRINT(LOG_INFO, "Connection id "<<conn_id<<" not found");
+    //if(it == v.end())
+    //  PRINT(LOG_INFO, "Connection id "<<conn_id<<" not found");
 
     //other clean-up
     remove_from_map(worker_task, conn_id);
@@ -286,53 +289,42 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
       sub_tasks_remaining[req_id].push_back(task_num);
 
 
-    /*if(free_workers.empty())
+    if(free_workers.empty())
     {
-      vector<WorkerTask> v = request_divided[req_id];
-      vector<WorkerTask>::iterator it = v.begin();
-      while(it != v.end())
-      {
-        if((*it).conn_id == conn_id)
-	{
-	  v.erase(it);
-	  break;
-	}
-	it++;
-      }
-      
-      if(it == v.end())
-        PRINT(LOG_INFO, "Connection id "<<conn_id<<" not found");
-      
-      //=== below should check if at all there is an entry for req_id
-      if(!in_map(sub_tasks_remaining, req_id))
-      {
-        vector<int> v2;
-	v2.push_back(task_num);
-	sub_tasks_remaining.insert(pair<int, vector<int> >(req_id, v2));
-      }
-      else
-	sub_tasks_remaining[req_id].push_back(task_num);
+      string tk = sub_task_store[req_id]->sub_task(task_num);
+      PRINT(LOG_INFO, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task is not re-assigned at the moment because no free worker is available.");
     }
     else
     {
-      int i = free_workers.front();
-      string pl = create_crack_payload(request_store[r], t, sub_task_store[r]->sub_task_map());
-      PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
-      lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
-      register_new_task(worker_id, r, t);
-      PRINT(LOG_INFO, "For request: "<<r<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[r]));
-      print_state();
+      int worker_id = free_workers.front();
+      for(int i=0; i<requests_in_progress.size(); i++)
+      {
+        int r = requests_in_progress[i];
+        PRINT(LOG_DEBUG, "Request: "<<r);
+        
+        vector<int> s = sub_tasks_remaining[r];
+        PRINT(LOG_DEBUG, "Sub tasks remaining: "<<print_vector(s));
+        if(!s.empty())
+        {
+          int t = s.front();
+    
+          string pl = create_crack_payload(request_store[r], t, sub_task_store[r]->sub_task_map());
+          PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
+          lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
+          register_new_task(worker_id, r, t);
 
-      //lsp_server_write(i, task)
-      register_new_task(i, req_id, task_num);
-      make sure conn_id is removed from everywhere 
-    }*/
+          string tk = sub_task_store[r]->sub_task(t);
+          PRINT(LOG_INFO, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task has been re-assigned to the worker "<<worker_id);
+          PRINT(LOG_DEBUG, "For request: "<<r<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[r]));  
+        }
+      }
+    }
   }
   else
   {
     /* this is a requester; so remove it from the request_mapping, so that the
        cracking result is ignored when it arrives */
-    PRINT(LOG_INFO, "Handling the death of client "<<req_id<<" who is a requester");
+    PRINT(LOG_CRIT, "Client "<<req_id<<" was a requester. This request has been halted.");
     request_divided.erase(req_id);
     remove_from_vector(requests_in_progress, req_id);
     remove_from_map(request_store, req_id);
@@ -474,6 +466,7 @@ void ServerHandler::print_state()
   PRINT(LOG_DEBUG, "==========================================");
   PRINT(LOG_DEBUG, "");
 }
+
 
 
 int main(int argc, char** argv) 

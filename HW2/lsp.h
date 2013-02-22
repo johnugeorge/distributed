@@ -180,7 +180,7 @@ std::string print_vector(std::vector<T>& v)
 
   typename std::vector<T>::iterator it = v.begin();
   std::string res;
-  res.append("[");
+  res.append("[ ");
   while(it != v.end())
   {
     std::stringstream ss;
