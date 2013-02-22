@@ -313,12 +313,22 @@ class ServerHandler
     bool is_request_complete(int req_id)
     {
       PRINT(LOG_DEBUG, "Entering method is_request_complete");
-      vector<int> v = sub_tasks_completed[req_id];
+      vector<int>& v = sub_tasks_completed[req_id];
+      int sz = sub_task_store[req_id]->size();
+      
       bool b = false;
-      if(v.size() == divisions)
+      if(v.size() == sz)
         b = true;
 
-      PRINT(LOG_DEBUG, "Result: "<<b<<" for request: "<<req_id);
+      if(b)
+      {
+        PRINT(LOG_DEBUG, "Request "<<req_id<<" is complete");
+      }
+      else
+      {
+        PRINT(LOG_DEBUG, "Request "<<req_id<<" is not complete yet");
+      }
+      
       PRINT(LOG_DEBUG, "Exiting method is_request_complete");
       return b;
     }
