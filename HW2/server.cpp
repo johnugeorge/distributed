@@ -328,7 +328,8 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
     request_divided.erase(req_id);
     remove_from_vector(requests_in_progress, req_id);
     remove_from_map(request_store, req_id);
-    //requests_in_progress.erase(req_id);
+    if(in_vector(request_cache, req_id))
+      remove_from_vector(request_cache, req_id);
   }
 
   print_state();
