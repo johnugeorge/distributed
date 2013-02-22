@@ -27,9 +27,9 @@
 
 // Global Parameters. For both server and clients.
 
-#define _EPOCH_LTH 2.0
-#define _EPOCH_CNT 5
-#define _DROP_RATE 0.0
+//#define _EPOCH_LTH 2.0
+//#define _EPOCH_CNT 5
+//#define _DROP_RATE 0.0
 #define  MAX_CLIENTS 20
 #define MAX_PAYLOAD_SIZE 1000
 

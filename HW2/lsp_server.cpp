@@ -172,6 +172,7 @@ bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 		exit(1);
 	}
 
+        free(a_srv->client_conn_info[conn_id]);
 	a_srv->client_conn_info.erase(conn_id);
 }
 

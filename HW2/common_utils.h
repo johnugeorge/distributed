@@ -15,11 +15,11 @@ static char timeStr[TIME_STR_MAX_SIZE];
 
 #define PRINT(a,b) \
 	if(a>=loglevel) \
-{\
-	cout<<b<<std::endl<<std::flush;\
-	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
-}\
-else\
+	cout<<b<<std::endl<<std::flush;
+//{
+//	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
+}
+//else\
 	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
 
 

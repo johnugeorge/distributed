@@ -192,6 +192,9 @@ string handle_read(uint8_t* buffer)
       pthread_join(junior_wkr1, NULL);
       pthread_join(junior_wkr2, NULL);
 
+      delete req_copy;
+      delete req;
+
       //=== observer the results
       int n = thread_res.size();
       int i = 0;
@@ -228,11 +231,13 @@ string handle_read(uint8_t* buffer)
   else
   {
     PRINT(LOG_INFO, "Unknown message type "<<buffer[0]<<" for worker");
+    delete req;
     return "";
   }
   
   PRINT(LOG_INFO, tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]); 
   findReverseHash(req);
+  delete req;
   return thread_res[0];
 }
 
