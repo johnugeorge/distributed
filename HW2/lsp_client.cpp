@@ -216,12 +216,15 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 		exit(1);
 	}
 	PRINT_PACKET(pkt,"SEND")
-	if ((numbytes = sendto(client->socket_fd, buff, len, 0,
-					client->serv_info->ai_addr, client->serv_info->ai_addrlen)) == -1) {
-		perror("client: sendto");
-		exit(1);
-	}
-
+		if(client->closed != true)
+		{
+			if ((numbytes = sendto(client->socket_fd, buff, len, 0,
+							client->serv_info->ai_addr, client->serv_info->ai_addrlen)) == -1) 
+			{
+				perror("client: sendto");
+				exit(1);
+			}
+		}
 	PRINT(LOG_DEBUG,"sent "<<numbytes<<" bytes of pkt type "<<pkt_type<<"\n");
 	free(buff);
 }
