@@ -25,6 +25,7 @@ void* findReverseHash(void* r)
   string lower = req->lower;
   string upper = req->upper;
   string start = lower;
+  PRINT(LOG_DEBUG," Hash to be found: "<<hash_str<<" Lower string: "<<lower<<" Upper String: "<<upper);
   int last_char_pos=start.length()-1;
   int start_char_pos=start.length()-1;
   size_t length = lower.length();
@@ -86,7 +87,7 @@ void* findReverseHash(void* r)
   {
     res.append("f ");
     res.append(start);
-    PRINT(LOG_INFO,"Found: "<<start);
+    PRINT(LOG_DEBUG,"Found: "<<start);
     pthread_mutex_lock(&lock);  
     thread_res.push_back(res);
     pthread_mutex_unlock(&lock);
@@ -94,7 +95,7 @@ void* findReverseHash(void* r)
   else
   {
     res.append("x");
-    PRINT(LOG_INFO,"Not Found ");
+    PRINT(LOG_DEBUG,"Not Found ");
     pthread_mutex_lock(&lock);  
     thread_res.push_back(res);
     pthread_mutex_unlock(&lock);
@@ -143,7 +144,7 @@ vector<string> divide_for_threading(string lower, string upper)
 
 string handle_read(uint8_t* buffer)
 {
-  PRINT(LOG_INFO,"Message type "<<buffer[0]);
+  PRINT(LOG_DEBUG,"Message type "<<buffer[0]);
   if(thread_res.size() > 0)
     thread_res.clear();
   
@@ -208,7 +209,7 @@ string handle_read(uint8_t* buffer)
         }
         i++;
       }
-
+      
       //if we reach here it means all results are 'x', so just return first one
       return thread_res[0];
     }
@@ -235,7 +236,7 @@ string handle_read(uint8_t* buffer)
     return "";
   }
   
-  PRINT(LOG_INFO, tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]); 
+  PRINT(LOG_DEBUG, tokens[0]<<" "<<tokens[1]<<" "<<tokens[2]<<" "<<tokens[3]); 
   findReverseHash(req);
   delete req;
   return thread_res[0];
@@ -281,12 +282,13 @@ int main(int argc, char** argv)
     PRINT(LOG_INFO, "Wrong arguments. Usage ./worker host:port");
   }
 
-  PRINT(LOG_INFO,host<<" "<<port);
+  PRINT(LOG_DEBUG,host<<" "<<port);
   lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
 
   if(myclient == NULL)
   {
-    PRINT(LOG_CRIT,"No connection to server");
+    PRINT(LOG_CRIT,"Server didn't respond to Connection Request");
+    PRINT(LOG_CRIT,"Disconnected");
     return 0;
   }
 
@@ -298,15 +300,17 @@ int main(int argc, char** argv)
     int numbytes = (lsp_client_read(myclient, buffer));
     if(numbytes > 0)
     {
-      PRINT(LOG_INFO, "buffer "<<buffer<<" bytes rcvd "<<numbytes);
+      PRINT(LOG_INFO, "Crack Request "<<buffer);
       string res = handle_read(buffer);
       bzero(buffer,MAX_PAYLOAD_SIZE);
                 
       if(res == "") continue;
       lsp_client_write(myclient, (uint8_t*)res.c_str(), strlen(res.c_str()));
+      PRINT(LOG_INFO," Done ");
     }
     else if(numbytes == -1)
     {
+      PRINT(LOG_CRIT,"No packets from Server ");
       PRINT(LOG_INFO, "Disconnected");
       break;
     }

@@ -109,7 +109,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 			 return -1;
 		 }
          }
-
+	 return 0;
  }
 }
 

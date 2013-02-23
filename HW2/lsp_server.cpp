@@ -32,18 +32,21 @@ lsp_server* lsp_server_create(int port)
 	
 	if ((sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1){
 		perror("server: socket");
+		return NULL;
 		sockfd = 0;
 	}
 	
 	if (sockfd && setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,sizeof(int)) == -1){
 		perror("setsockopt");
 		sockfd =0;
+		return NULL;
 	}
 
 	if (sockfd && bind(sockfd, servinfo->ai_addr, servinfo->ai_addrlen) == -1){
 		close(sockfd);
 		perror("server:bind");
 		sockfd = 0;
+		return NULL;
 	}
 
 	freeaddrinfo(servinfo);
@@ -98,6 +101,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			 return -1;
 		 }
          }
+	 *conn_id=0;
 	 return 0;
  }
 
@@ -117,13 +121,15 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 		if(a_srv->client_conn_info.find(conn_id) == a_srv->client_conn_info.end())
 		{
 			PRINT(LOG_INFO," Server read::No Client Exists for conn Id "<<conn_id);
-			exit(1);
+			return false;
+			//exit(1);
 		}
 		client_info* a_client=a_srv->client_conn_info[conn_id];
 		if( a_client ==NULL)
 		{
 			PRINT(LOG_INFO," client Ptr is NULL for conn_id "<<conn_id<<".exiting ");
-			exit(1);
+			return false;
+			//exit(1);
 		}
 		else
 		{
@@ -169,11 +175,12 @@ bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 	if(a_srv->client_conn_info.find(conn_id) == a_srv->client_conn_info.end())
 	{
 		PRINT(LOG_INFO," Server close::No Client Exists for conn Id "<<conn_id);
-		exit(1);
+		return false;
+		//exit(1);
 	}
-
-        free(a_srv->client_conn_info[conn_id]);
+	client_info* client_conn=a_srv->client_conn_info[conn_id];
 	a_srv->client_conn_info.erase(conn_id);
+        delete(client_conn);
 }
 
 void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int seq_no,const char *payload,int length)
@@ -185,7 +192,8 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	if(server->client_conn_info.find(client_conn_id) == server->client_conn_info.end())
 	{
 		PRINT(LOG_INFO," Server Send::No Client Exists for conn Id "<<client_conn_id);
-		exit(1);
+		return;
+		//exit(1);
 	}
 
 	client_info* client_conn=server->client_conn_info[client_conn_id];

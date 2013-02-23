@@ -78,7 +78,7 @@ void c_network_handler(void* p)
 			  client->conn_state=CONN_REQ_ACK_RCVD;
 			  pthread_mutex_unlock(&global_mutex);
 
-			  PRINT(LOG_INFO," New Connection Id of the Client "<<client->conn_id<<"\n");
+			  PRINT(LOG_DEBUG," New Connection Id of the Client "<<client->conn_id<<"\n");
 		  }
 		  else if ((pkt.conn_id != 0 ) && (pkt.seq_no != 0))//data_ack
 		  {
@@ -87,7 +87,8 @@ void c_network_handler(void* p)
 		  else
 	          {
 			  PRINT(LOG_CRIT,"Error in packet parsing\n");
-		          exit(1);
+			  continue;
+		        //  exit(1);
 		  }
 		  if(get_ack_status(client,conn_argv)==true)
 		  {

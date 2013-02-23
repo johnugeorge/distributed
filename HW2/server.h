@@ -120,7 +120,7 @@ class ServerHandler
      */
     void init_subtask_store(int req_id, int pwd_len)
     {
-      PRINT(LOG_INFO, "Entering ServerHandler::init_subtask_store");
+      PRINT(LOG_DEBUG, "Entering ServerHandler::init_subtask_store");
       //if(!sub_task_store.empty())
       //  return;
 
@@ -128,13 +128,13 @@ class ServerHandler
       SubTaskStore* store = new SubTaskStore(req_id, pwd_len);
       sub_task_store.insert(pair<int, SubTaskStore*>(req_id, store));
 
-      PRINT(LOG_INFO, "Exiting ServerHandler::init_subtask_store");
+      PRINT(LOG_DEBUG, "Exiting ServerHandler::init_subtask_store");
     }
 
 
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
-      PRINT(LOG_INFO, "Entering ServerHandler::remove_subtask");
+      PRINT(LOG_DEBUG, "Entering ServerHandler::remove_subtask");
       print_state();
       //print_current_request_divisions();
 
@@ -156,7 +156,7 @@ class ServerHandler
       }
 
       if(vit1 == v1.end())
-        PRINT(LOG_INFO, "Worker id "<<worker_id<<" not found");
+        PRINT(LOG_DEBUG, "Worker id "<<worker_id<<" not found");
      
       int task = worker_task[worker_id];
       vector<int> v = sub_tasks_completed[req_id];
@@ -201,7 +201,7 @@ class ServerHandler
             if((*vit3) == req_id)
 	    {
               requests_in_progress.erase(vit3);
-              PRINT(LOG_INFO, "Request "<<(*vit3)<<" is not in progress anymore");
+              PRINT(LOG_DEBUG, "Request "<<(*vit3)<<" is not in progress anymore");
               break;
 	    }
             vit3++;
@@ -216,7 +216,7 @@ class ServerHandler
       }
 
       print_state();
-      PRINT(LOG_INFO, "Exiting ServerHandler::remove_subtask");
+      PRINT(LOG_DEBUG, "Exiting ServerHandler::remove_subtask");
     }
 
     void restore_subtask(int req_id, int prev_worker_id)
@@ -225,7 +225,7 @@ class ServerHandler
        * this method restores a subtask that was previously assigned to a worker; due to the death of the worker
        */
 
-      PRINT(LOG_INFO, "Entering ServerHandler::restore_subtask");
+      PRINT(LOG_DEBUG, "Entering ServerHandler::restore_subtask");
       print_state();
       
       int task_num = worker_task[prev_worker_id];
@@ -246,7 +246,7 @@ class ServerHandler
 	}
         
         if(vit1 == v1.end())
-          PRINT(LOG_INFO, "Prev worker id"<<prev_worker_id<<" not found");
+          PRINT(LOG_DEBUG, "Prev worker id"<<prev_worker_id<<" not found");
         
         //=== now put it back as a pending task
         map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
@@ -255,7 +255,7 @@ class ServerHandler
       }
 
       print_state();
-      PRINT(LOG_INFO, "Exiting ServerHandler::restore_subtask");
+      PRINT(LOG_DEBUG, "Exiting ServerHandler::restore_subtask");
     }
 
     void init_divisions(int pwd_length)

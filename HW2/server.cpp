@@ -55,7 +55,7 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
   print_state();
 
   int new_req = request_cache.front();
-  PRINT(LOG_INFO, "Server got request "<<new_req<<" from cache");
+  PRINT(LOG_DEBUG, "Server got request "<<new_req<<" from cache");
   string h = request_store[new_req]; //can potentially cause a bug
   int i = 0;
   bool success = false;
@@ -63,8 +63,8 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
   //=== init some data structures
   sub_tasks_remaining.insert(pair<int, vector<int> >(new_req, sub_task_store[new_req]->new_sub_task_list()));  
   requests_in_progress.push_back(new_req);
-  PRINT(LOG_INFO, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
-  PRINT(LOG_INFO, "For request: "<<new_req<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[new_req]));
+  PRINT(LOG_DEBUG, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
+  PRINT(LOG_DEBUG, "For request: "<<new_req<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[new_req]));
   PRINT(LOG_INFO, "Current no of free workers: "<<free_workers.size());
 
   while(!free_workers.empty() && i < sub_tasks_remaining[new_req].size())
@@ -76,7 +76,7 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
     PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<pl.length()+1);
     lsp_server_write(svr, (void*)pl.c_str(), pl.length(), w);
     register_new_task(w, new_req, task_num);
-    PRINT(LOG_INFO, "The remaining sub_tasks for req "<<new_req<<" are: "<<print_vector(sub_tasks_remaining[new_req]));
+    PRINT(LOG_DEBUG, "The remaining sub_tasks for req "<<new_req<<" are: "<<print_vector(sub_tasks_remaining[new_req]));
     i++;
   }
  
@@ -95,8 +95,8 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
 void ServerHandler::handle_join(lsp_server* svr, int worker_id)
 {
   PRINT(LOG_DEBUG, "Entering ServerHandler::handle_join");
-  PRINT(LOG_INFO, "Worker "<<worker_id<<" is going to join");
-  PRINT(LOG_INFO, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
+  PRINT(LOG_INFO, "Worker "<<worker_id<<" joins ");
+  PRINT(LOG_DEBUG, "Current reqs in progress at the server: "<<print_vector(requests_in_progress));
   print_state();
 
   for(int i=0; i<requests_in_progress.size(); i++)
@@ -140,7 +140,7 @@ void ServerHandler::handle_join(lsp_server* svr, int worker_id)
 void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result)
 {
   PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_result");
-  PRINT(LOG_INFO, "The worker "<<worker_id<<" has returned");
+  PRINT(LOG_INFO, "The worker "<<worker_id<<" has returned the result");
   print_state();
 
   /* if result is PASS, just return the result to the requester and
@@ -171,7 +171,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       v.push_back("f");
       v.push_back(pwd);
       string pl = create_payload(v);
-      PRINT(LOG_INFO, "Sending to requester: "<<pl);
+      PRINT(LOG_INFO, "Sending the result to requester: "<<pl);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
     else if(result == FAIL)
@@ -179,20 +179,20 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       vector<string> v;
       v.push_back("x");
       string pl = create_payload(v);
-      PRINT(LOG_INFO, "Sending to requester: "<<pl);
+      PRINT(LOG_INFO, "Sending the result to requester: "<<pl);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), req_id);
     }
   }
 
   //=== now this worker is free; it can be given a new task
-  PRINT(LOG_INFO, "Worker "<<worker_id<<" is free. It can be given a new task.");
-  PRINT(LOG_INFO, "Current requests in progress: "<<print_vector(requests_in_progress));
+  PRINT(LOG_DEBUG, "Worker "<<worker_id<<" is free. It can be given a new task.");
+  PRINT(LOG_DEBUG, "Current requests in progress: "<<print_vector(requests_in_progress));
   for(int i=0; i<requests_in_progress.size(); i++)
   {
     int r = requests_in_progress[i]; 
-    PRINT(LOG_INFO, "Request: "<<r);
+    PRINT(LOG_DEBUG, "Request: "<<r);
     vector<int> s = sub_tasks_remaining[r];
-    PRINT(LOG_INFO, "Sub tasks remaining: "<<print_vector(s));
+    PRINT(LOG_DEBUG, "Sub tasks remaining: "<<print_vector(s));
     if(!s.empty())
     {
       int t = s.front();
@@ -201,7 +201,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
       PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
       register_new_task(worker_id, r, t);
-      PRINT(LOG_INFO, "For request: "<<r<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[r]));
+      PRINT(LOG_DEBUG, "For request: "<<r<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[r]));
       print_state();
       return;
     }
@@ -221,7 +221,7 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
   }
 
   print_state();
-  PRINT(LOG_INFO, "Exiting ServerHandler::handle_result");
+  PRINT(LOG_DEBUG, "Exiting ServerHandler::handle_result");
 }
 
 
@@ -231,16 +231,16 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
 void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
 {
   //first need to figure out if this is a requester or a worker
-  PRINT(LOG_INFO, "Entering ServerHandler::handle_dead_client");
+  PRINT(LOG_DEBUG, "Entering ServerHandler::handle_dead_client");
   print_state();
   
   bool worker = false;
   int req_id = conn_id;
  
-  PRINT(LOG_CRIT, "Client "<<conn_id<<" is dead");
+  PRINT(LOG_DEBUG, "Client "<<conn_id<<" is dead");
   if(in_vector(free_workers, conn_id))
   {
-    PRINT(LOG_CRIT, "Client "<<conn_id<<" was a free worker");
+    PRINT(LOG_DEBUG, "Client "<<conn_id<<" was a free worker");
     remove_from_vector(free_workers, conn_id);
     return;
   }
@@ -255,7 +255,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
   if(worker)
   {
     /* this is a worker who has just been discovered to be dead; need to re-assign the task to another worker and modify the registry for this worker*/
-    PRINT(LOG_CRIT, "Client "<<conn_id<<" was an occupied worker");
+    PRINT(LOG_DEBUG, "Client "<<conn_id<<" was an occupied worker");
     int task_num = worker_task[conn_id];
     
     vector<WorkerTask> v = request_divided[req_id];
@@ -292,7 +292,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
     if(free_workers.empty())
     {
       string tk = sub_task_store[req_id]->sub_task(task_num);
-      PRINT(LOG_INFO, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task is not re-assigned at the moment because no free worker is available.");
+      PRINT(LOG_DEBUG, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task is not re-assigned at the moment because no free worker is available.");
     }
     else
     {
@@ -314,7 +314,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
           register_new_task(worker_id, r, t);
 
           string tk = sub_task_store[r]->sub_task(t);
-          PRINT(LOG_INFO, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task has been re-assigned to the worker "<<worker_id);
+          PRINT(LOG_DEBUG, "The occupied worker "<<conn_id<<" was working on task "<<task_num<<"("<<tk<<") of request "<<req_id<<". This task has been re-assigned to the worker "<<worker_id);
           PRINT(LOG_DEBUG, "For request: "<<r<<" the remaining sub_tasks are: "<<print_vector(sub_tasks_remaining[r]));  
         }
       }
@@ -324,7 +324,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
   {
     /* this is a requester; so remove it from the request_mapping, so that the
        cracking result is ignored when it arrives */
-    PRINT(LOG_CRIT, "Client "<<req_id<<" was a requester. This request has been halted.");
+    PRINT(LOG_DEBUG, "Client "<<req_id<<" was a requester. This request has been halted.");
     request_divided.erase(req_id);
     remove_from_vector(requests_in_progress, req_id);
     remove_from_map(request_store, req_id);
@@ -333,7 +333,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
   }
 
   print_state();
-  PRINT(LOG_INFO, "Exiting ServerHandler::handle_dead_client");
+  PRINT(LOG_DEBUG, "Exiting ServerHandler::handle_dead_client");
 }
 
 
@@ -388,7 +388,7 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 {
   if(returned_id != 0 && bytes > 0)
   {
-    PRINT(LOG_INFO, " conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<" strlen "<<strlen((char*)payload)<<"\n");
+    PRINT(LOG_INFO, " conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<"\n");
     if(payload[0] == 'c')
     {
       svr_handler->handle_crack(myserver, returned_id, payload);
@@ -413,7 +413,7 @@ void decode_and_dispatch(ServerHandler* svr_handler,
   }
   else if(returned_id != 0 && bytes == -1)
   {
-    PRINT(LOG_INFO, "Client with connection id "<<returned_id<<" shuts down "<<payload<<"bytes "<<bytes);
+    PRINT(LOG_INFO, "Client with connection id "<<returned_id<<" shuts down ");
     svr_handler->handle_dead_client(myserver, returned_id);
     lsp_server_close(myserver,returned_id);
   }
@@ -484,6 +484,11 @@ int main(int argc, char** argv)
   srand(12345);
 
   lsp_server* myserver = lsp_server_create(atoi(argv[1]));
+  if(myserver == NULL)
+  {
+	  PRINT(LOG_CRIT," Server is not created on this port");
+	  exit(0);
+  }
   ServerHandler* svr_handler = new ServerHandler(13);
 
   uint8_t payload[MAX_PAYLOAD_SIZE];

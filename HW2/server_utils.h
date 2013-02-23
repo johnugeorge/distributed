@@ -13,7 +13,7 @@ template<typename K, typename V> void remove_from_map(map<K, V>& m, K key);
 template<typename T> 
 bool in_vector(vector<T>& v, T data)
 {
-  PRINT(LOG_INFO, "Entering method in_vector");
+  PRINT(LOG_DEBUG, "Entering method in_vector");
   if(v.empty()) return false;
 
   typename vector<T>::iterator it = v.begin();
@@ -24,7 +24,7 @@ bool in_vector(vector<T>& v, T data)
     it++;
   }
 
-  PRINT(LOG_INFO, "Exiting method in_vector");
+  PRINT(LOG_DEBUG, "Exiting method in_vector");
   return false;
 }
 
@@ -34,7 +34,7 @@ bool in_vector(vector<T>& v, T data)
 template<typename T>
 void remove_from_vector(vector<T>& v, T data)
 {
-  PRINT(LOG_INFO, "Entering method remove_from_vector");
+  PRINT(LOG_DEBUG, "Entering method remove_from_vector");
   if(v.empty()) return;
 
   typename vector<T>::iterator it = v.begin();
@@ -43,21 +43,21 @@ void remove_from_vector(vector<T>& v, T data)
     if((*it) == data)
     {
       v.erase(it);
-      PRINT(LOG_INFO, "Element "<<data<<" deleted");
+      PRINT(LOG_DEBUG, "Element "<<data<<" deleted");
       return;
     }
     it++;
   }
 
-  PRINT(LOG_INFO, "Element "<<data<<" not in vector");
-  PRINT(LOG_INFO, "Exiting method remove_from_vector");
+  PRINT(LOG_DEBUG, "Element "<<data<<" not in vector");
+  PRINT(LOG_DEBUG, "Exiting method remove_from_vector");
 }
 
 
 template<typename K, typename V>
 void remove_from_map(map<K, V>& m, K key)
 {
-  PRINT(LOG_INFO, "Entering method remove_from_map");
+  PRINT(LOG_DEBUG, "Entering method remove_from_map");
   if(m.empty()) return;
 
   typename map<K, V>::iterator it = m.begin();
@@ -71,15 +71,15 @@ void remove_from_map(map<K, V>& m, K key)
     it++;
   }
 
-  PRINT(LOG_INFO, "Element "<<key<<" not in map");
-  PRINT(LOG_INFO, "Exiting method remove_from_map");
+  PRINT(LOG_DEBUG, "Element "<<key<<" not in map");
+  PRINT(LOG_DEBUG, "Exiting method remove_from_map");
 }
 
 
 template<typename K, typename V>
 bool in_map(map<K, V>& m, K key)
 {
-  PRINT(LOG_INFO, "Entering method in_map");
+  PRINT(LOG_DEBUG, "Entering method in_map");
   if(m.empty()) return false;
 
   typename map<K, V>::iterator it = m.begin();
@@ -91,8 +91,8 @@ bool in_map(map<K, V>& m, K key)
   }
 
 
-  PRINT(LOG_INFO, "Element "<<key<<" not in map");
-  PRINT(LOG_INFO, "Exiting method in_map");
+  PRINT(LOG_DEBUG, "Element "<<key<<" not in map");
+  PRINT(LOG_DEBUG, "Exiting method in_map");
   return false;
 }
 
@@ -145,7 +145,7 @@ vector<string> strsplit(string s, string delim)
 
 string create_payload(vector<string> strings)
 {
-  PRINT(LOG_INFO, "Entering method create_payload");
+  PRINT(LOG_DEBUG, "Entering method create_payload");
   string pl;
   size_t n = strings.size();
   int i = 0;
@@ -159,7 +159,7 @@ string create_payload(vector<string> strings)
   pl.append(strings[n-1]);
 
   //cout<<pl<<endl;
-  PRINT(LOG_INFO, "Exiting method create_payload");
+  PRINT(LOG_DEBUG, "Exiting method create_payload");
   return pl;
 }
 

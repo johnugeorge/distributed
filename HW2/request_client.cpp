@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 		PRINT(LOG_INFO, " Wrong Arguments. Usage ./request host:port hash len\n");
 		exit(0);
 	}
-	 PRINT(LOG_INFO,host<<" "<<port<<" "<<hash<<" "<<length);
+	 PRINT(LOG_DEBUG,host<<" "<<port<<" "<<hash<<" "<<length);
 	lsp_client* myclient = lsp_client_create(host.c_str(), atoi(port.c_str()));
 	if(myclient == NULL)
 	{
@@ -78,14 +78,14 @@ int main(int argc, char** argv)
 	int numbytes=(lsp_client_read(myclient, buffer));
 	if(numbytes > 0)
 	{
-		PRINT(LOG_INFO, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
+		PRINT(LOG_DEBUG, " buffer "<<buffer<<" bytes rcvd "<<numbytes<<"\n");
 		result_not_recvd=handle_read(buffer);
                 if(result_not_recvd == true)break;
 		bzero(buffer,MAX_PAYLOAD_SIZE);
 	}
 	else if(numbytes == -1)
 	{
-
+		PRINT(LOG_INFO, " No packets from Server \n");
 		PRINT(LOG_INFO, " Disconnected \n");
 		break;
 	}
