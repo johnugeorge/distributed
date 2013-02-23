@@ -5,13 +5,15 @@
 #include "lspmessage.pb-c.h"
 
 using namespace std;
+
 // values are read from lsp.conf during startup
 // of server,worker and requester.
 // Change values in lsp.conf and restart
-double epoch_lth; //= _EPOCH_LTH;
-int epoch_cnt; // = _EPOCH_CNT;
-double drop_rate; // = _DROP_RATE;
-int loglevel; // = LOG_INFO;
+double epoch_lth; 
+int epoch_cnt; 
+double drop_rate;
+int loglevel; 
+bool to_file; 
 thread_info thread_info_map;
 
 pthread_mutex_t global_mutex;
@@ -46,6 +48,12 @@ void lsp_set_log_level(int l)
   loglevel = l;
 }
 
+void set_to_file(bool t)
+{
+  to_file = t;
+}
+
+
 double lsp_get_epoch_lth()
 {
   return epoch_lth;
@@ -61,7 +69,10 @@ double lsp_get_drop_rate()
   return drop_rate;
 }
 
-
+bool get_to_file()
+{
+  return to_file;
+}
 
 
 

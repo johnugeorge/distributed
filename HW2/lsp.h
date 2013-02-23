@@ -27,9 +27,6 @@
 
 // Global Parameters. For both server and clients.
 
-//#define _EPOCH_LTH 2.0
-//#define _EPOCH_CNT 5
-//#define _DROP_RATE 0.0
 #define  MAX_CLIENTS 20
 #define MAX_PAYLOAD_SIZE 1000
 
@@ -46,15 +43,15 @@ extern pthread_mutex_t global_mutex;
 extern pthread_cond_t global_created;
 
 
-
-
 void lsp_set_epoch_lth(double lth);
 void lsp_set_epoch_cnt(int cnt);
 void lsp_set_drop_rate(double rate);
 void lsp_set_log_level(int lg);
+void set_to_file(bool t);
 double lsp_get_epoch_lth();
 int lsp_get_epoch_cnt();
 double lsp_get_drop_rate();
+bool get_to_file();
 
 typedef struct
 {
@@ -149,7 +146,7 @@ inline void initialize_configuration()
   std::ifstream read;
   std::string file_name = "lsp.conf";
   read.open(file_name.c_str());
-  PRINT(LOG_INFO, "Reading configuration...\n");
+  PRINT(LOG_INFO, "Reading configuration... Done\n");
   std::string s;
   while(std::getline(read, s)) config[s.substr(0, s.find('='))]=s.substr(s.find('=')+1);
 
@@ -167,6 +164,12 @@ inline void initialize_configuration()
     else if(lg_level == "LOG_CRIT")
       lsp_set_log_level(3);
   }
+
+  std::string t = config["ENABLE_LOG_FILE"];
+  if(t == "T")
+    set_to_file(true);
+  else if(t == "F")
+    set_to_file(false);
 }
 
 

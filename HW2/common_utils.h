@@ -15,15 +15,10 @@ static char timeStr[TIME_STR_MAX_SIZE];
 
 #define PRINT(a,b) \
 	if(a>=loglevel) \
-	cout<<b<<std::endl<<std::flush;
-//{
-//	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
-}
-//else\
-	outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;\
-
-
-
+	  cout<<b<<std::endl<<std::flush;\
+        if(get_to_file()) \
+          outFile<<getTimeStr()<<": "<<b<<std::endl<<std::flush;
+    
 
 #define PRINT_PACKET(pkt,dir) \
 	PRINT(LOG_DEBUG, "==========START=======================\n"); \
@@ -33,12 +28,6 @@ PRINT(LOG_DEBUG, " Seq_no:  "<<pkt.seq_no<<"\n"); \
 PRINT(LOG_DEBUG, " Payload: "<<pkt.data<<"\n"); \
 PRINT(LOG_DEBUG, "==========END=======================\n");
 
-/*typedef enum loglevels{
-        LOG_DEBUG=1,
-        LOG_INFO =2,
-        LOG_CRIT =3
-}loglevels;
-*/
 
 inline const char*	getTimeStr(void)
 {
