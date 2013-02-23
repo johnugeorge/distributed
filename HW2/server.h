@@ -1,11 +1,11 @@
 #include <map>
 #include <string>
 #include <vector>
-//#include <sstream>
 #include "lsp_server.h"
 #include "server_utils.h"
 
 using namespace std;
+
 
 typedef enum TaskResult
 {
@@ -13,6 +13,7 @@ typedef enum TaskResult
   PASS,
   NO_RESULT
 } TaskResult;
+
 
 class WorkerTask
 {
@@ -41,7 +42,7 @@ class WorkerTask
 class SubTaskStore
 {
   /*
-   * All subtasks start from 1
+   * All subtasks start from 1. This class initializes the sub-tasks of a request
    */
   public:
     SubTaskStore(int req, int pwd_len) : req_id(req), pwd_length(pwd_len)
@@ -91,8 +92,6 @@ class SubTaskStore
 
     string to_string()
     {
-      //stringstream ss;
-      //ss<<"Request "<<req_id<<" = "<<print_vector(sub_task_names);
       return print_vector(sub_task_names);
     }
 };
@@ -121,10 +120,7 @@ class ServerHandler
     void init_subtask_store(int req_id, int pwd_len)
     {
       PRINT(LOG_DEBUG, "Entering ServerHandler::init_subtask_store");
-      //if(!sub_task_store.empty())
-      //  return;
 
-      //vector<string> divs = get_divisions(&pwd_len, &divisions);
       SubTaskStore* store = new SubTaskStore(req_id, pwd_len);
       sub_task_store.insert(pair<int, SubTaskStore*>(req_id, store));
 
@@ -132,11 +128,13 @@ class ServerHandler
     }
 
 
+    /*
+     * a clean-up method that is called when sub-tasks are finished evaluation
+     */
     void remove_subtask(int req_id, int worker_id, TaskResult result)
     {
       PRINT(LOG_DEBUG, "Entering ServerHandler::remove_subtask");
       print_state();
-      //print_current_request_divisions();
 
       //=== remove the assigned subtask
       map<int, vector<WorkerTask> >::iterator it1 = request_divided.find(req_id);
@@ -168,20 +166,7 @@ class ServerHandler
       map<int, vector<int> >::iterator it2 = sub_tasks_remaining.find(req_id);
       map<int, vector<int> >::iterator it3 = sub_tasks_completed.find(req_id);
       vector<int> v2 = it2->second;
-      /*vector<int>::iterator vit2 = v2.begin();
-      while(vit2 != v2.end())
-      {
-        if((*vit2) == task_num)
-        {
-          v2.erase(vit2);
-          break;
-        }
-        vit2++;
-      }
-  
-      if(vit2 == v2.end())
-        cout<<"task num Not found \n";
-      */
+      
       bool last_subtask = false;
       if(is_request_complete(req_id))
         last_subtask = true;
@@ -219,12 +204,12 @@ class ServerHandler
       PRINT(LOG_DEBUG, "Exiting ServerHandler::remove_subtask");
     }
 
+    
+    /*
+     * this method restores a subtask that was previously assigned to a worker; due to the death of the worker
+     */
     void restore_subtask(int req_id, int prev_worker_id)
     {
-      /*
-       * this method restores a subtask that was previously assigned to a worker; due to the death of the worker
-       */
-
       PRINT(LOG_DEBUG, "Entering ServerHandler::restore_subtask");
       print_state();
       
@@ -258,11 +243,10 @@ class ServerHandler
       PRINT(LOG_DEBUG, "Exiting ServerHandler::restore_subtask");
     }
 
-    void init_divisions(int pwd_length)
-    {
-      //calculate the divisions
-    }
 
+    /*
+     * a util method that prints out the current request division mapping
+     */
     void print_current_request_divisions()
     {
       PRINT(LOG_DEBUG, "Entering ServerHandler::print_current_request_divisions");
@@ -294,18 +278,17 @@ class ServerHandler
           {
             WorkerTask w = v[i];
             ss<<"<"<<"Worker "<<w.conn_id<<", Task "<<w.task_num<<"> ";
-            //cout<<"<"<<"Worker "<<w.conn_id<<", Task "<<w.task_num<<"> ";
             i++;
           }
           ss<<"\n";
         }
-        //cout<<endl;
         it++;
       }
 
       PRINT(LOG_DEBUG, ss.str());
       PRINT(LOG_DEBUG, "Exiting print_current_request_divisions");
     }
+
 
     /* method to check if all the sub tasks of a particular req have 
      * returned 

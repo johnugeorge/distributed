@@ -9,11 +9,11 @@ bool handle_read(uint8_t* buffer)
    string str((const char*)buffer);
    if(buffer[0] == 'f')
    {
-      PRINT(LOG_INFO," Found: "<<str.substr(2));
+      PRINT(LOG_INFO,"Found: "<<str.substr(2));
    }
    else if (buffer[0] == 'x')
    {
-       PRINT(LOG_INFO," Not Found ");
+       PRINT(LOG_INFO,"Not Found ");
    }
    else
    {
@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 	        upper=upper+"z";
 	}
 	string crack_msg= string("c")+" "+hash+" "+lower+" "+upper;
-	PRINT(LOG_INFO," Crack Message "<<crack_msg);
+	PRINT(LOG_INFO,"Crack Message "<<crack_msg);
 	lsp_client_write(myclient, (uint8_t*) crack_msg.c_str(), strlen(crack_msg.c_str()));
 	int result_not_recvd=false;
 	while(1) {
@@ -85,8 +85,8 @@ int main(int argc, char** argv)
 	}
 	else if(numbytes == -1)
 	{
-		PRINT(LOG_INFO, " No packets from Server \n");
-		PRINT(LOG_INFO, " Disconnected \n");
+		PRINT(LOG_INFO, "No packets from Server \n");
+		PRINT(LOG_INFO, "Disconnected \n");
 		break;
 	}
 	             

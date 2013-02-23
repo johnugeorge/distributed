@@ -100,8 +100,6 @@ void* findReverseHash(void* r)
     thread_res.push_back(res);
     pthread_mutex_unlock(&lock);
   }
-
-  //return res;
 }
 
 
@@ -113,9 +111,6 @@ vector<string> divide_for_threading(string lower, string upper)
    */
   string hyp("-");
   vector<string> res;
-  //vector<string> bounds = strsplit(task, hyp);
-  //string lower = bounds[0];
-  //string upper = bounds[1];
   int pwd_len = lower.length();
   int th_l = 2;
   int i = 0;
@@ -129,7 +124,6 @@ vector<string> divide_for_threading(string lower, string upper)
     new_task1.append(1, first);
     new_task1.append(pwd_len-1, a);
     res.push_back(new_task1);
-    //new_task.append(hyp);
     string new_task2;
     new_task2.append(1, first);
     new_task2.append(pwd_len-1, z);
@@ -172,10 +166,6 @@ string handle_read(uint8_t* buffer)
       //init a copy of the req
       //request req_copy;
       request* req_copy = new request;
-      /*req_copy.c = req.c;
-      req_copy.hash = req.hash;
-      req_copy.lower = req.lower;
-      req_copy.upper = req.upper;*/
       req_copy->c = req->c;
       req_copy->hash = req->hash;
       req_copy->lower = req->lower;
@@ -213,21 +203,6 @@ string handle_read(uint8_t* buffer)
       //if we reach here it means all results are 'x', so just return first one
       return thread_res[0];
     }
-    /*string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-    
-    // Find first "non-delimiter".
-    string::size_type pos     = str.find_first_of(delimiters, lastPos);
-    while(string::npos != pos || string::npos != lastPos)
-    {
-      // Found a token, add it to the vector.
-      tokens.push_back(str.substr(lastPos, pos - lastPos));
-      
-      // Skip delimiters.  Note the "not_of"
-      lastPos = str.find_first_not_of(delimiters, pos);
-      
-      // Find next "non-delimiter"
-      pos = str.find_first_of(delimiters, lastPos);
-    }*/
   }
   else
   {
@@ -245,23 +220,9 @@ string handle_read(uint8_t* buffer)
 
 int main(int argc, char** argv) 
 {
-  /*string t1 = "c 2c1acb19ec50e7cf120b537395724ee2b2ae98fb yaaaa zzzzz";
-  const char* x = t1.c_str();
-  string res = handle_read((uint8_t*)x);
-  cout<<"Result: "<<res<<endl;
-  string t2 = "c 8f890318cdb4079b0ac999f477ea8807ffd0fdbd aaa zzz";
-  const char* y = t2.c_str();
-  res = handle_read((uint8_t*)y);
-  cout<<"Result: "<<res<<endl;
-  string t3 = "c 5be93480bd8b743454a93dca084849202af43af5 haaaa izzzz";
-  const char* z = t3.c_str();
-  res = handle_read((uint8_t*)z);
-  cout<<"Result: "<<res<<endl;
-  lsp_set_drop_rate(_DROP_RATE);
-  lsp_set_epoch_cnt(_EPOCH_CNT);
-  lsp_set_epoch_lth(_EPOCH_LTH);*/
   initialize_configuration();
   srand(12345);
+  
   uint8_t buffer[MAX_PAYLOAD_SIZE];	
   if(argc != 2)
   {
@@ -306,7 +267,7 @@ int main(int argc, char** argv)
                 
       if(res == "") continue;
       lsp_client_write(myclient, (uint8_t*)res.c_str(), strlen(res.c_str()));
-      PRINT(LOG_INFO," Done ");
+      PRINT(LOG_INFO,"Done ");
     }
     else if(numbytes == -1)
     {

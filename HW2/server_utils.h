@@ -4,12 +4,17 @@
 #include <string>
 #include "common_utils.h"
 
+
 using namespace std;
 template<typename T> bool in_vector(vector<T>& v);
 template<typename K, typename V> bool in_map(map<K, V>& m);
 template<typename T> void remove_from_vector(vector<T>& v, T data);
 template<typename K, typename V> void remove_from_map(map<K, V>& m, K key);
 
+
+/*
+ * checks for the presence of data in a vector
+ */
 template<typename T> 
 bool in_vector(vector<T>& v, T data)
 {
@@ -27,6 +32,7 @@ bool in_vector(vector<T>& v, T data)
   PRINT(LOG_DEBUG, "Exiting method in_vector");
   return false;
 }
+
 
 /*
  * removes the FIRST occurance of data from v
@@ -54,6 +60,9 @@ void remove_from_vector(vector<T>& v, T data)
 }
 
 
+/*
+ * removes the FIRST occurance of the key from a map
+ */
 template<typename K, typename V>
 void remove_from_map(map<K, V>& m, K key)
 {
@@ -76,6 +85,9 @@ void remove_from_map(map<K, V>& m, K key)
 }
 
 
+/*
+ * checks for the presence of key in map
+ */
 template<typename K, typename V>
 bool in_map(map<K, V>& m, K key)
 {
@@ -113,6 +125,9 @@ vector<int> new_sub_task_list(int* divisions)
 }
 
 
+/*
+ * util method to split a string
+ */
 vector<string> strsplit(string s, string delim)
 {
   vector<string> tokens;
@@ -143,6 +158,9 @@ vector<string> strsplit(string s, string delim)
 }
 
 
+/*
+ * helper method to create a payload
+ */
 string create_payload(vector<string> strings)
 {
   PRINT(LOG_DEBUG, "Entering method create_payload");
@@ -151,14 +169,12 @@ string create_payload(vector<string> strings)
   int i = 0;
   while(i < n-1)
   {
-    //cout<<"appending "<<strings[i]<<endl;
     pl.append(strings[i]);
     pl.append(" ");
     i++;
   }
   pl.append(strings[n-1]);
 
-  //cout<<pl<<endl;
   PRINT(LOG_DEBUG, "Exiting method create_payload");
   return pl;
 }
@@ -174,14 +190,15 @@ string create_crack_payload(string hash, int task_num, map<int, string> store)
   strings.push_back(hash);
   strings.push_back(spl[0]);
   strings.push_back(spl[1]);
-  //cout<<strings.size()<<endl;
 
   string s = create_payload(strings);
-  //cout<<"Creating crack payload: "<<s<<endl;
   return s;
 }
 
 
+/*
+ * helper method to create request divisions
+ */
 vector<string> get_divisions(int* pwd_length, int* divisions)
 {
   int p = *pwd_length;
@@ -220,7 +237,6 @@ vector<string> get_divisions(int* pwd_length, int* divisions)
     div.append(1, first_copy);
     div.append(p-1, last);
     divs.push_back(div);
-    //cout<<div<<endl;
     first_copy += 1;
     j++;
   }

@@ -6,9 +6,7 @@
 #include "server.h"
 
 using namespace std;
-
 ofstream outFile("server.log");
-
 void decode_and_dispatch(ServerHandler*, lsp_server*, uint8_t*, uint32_t, int);
 
 ServerHandler::ServerHandler(int d)
@@ -31,8 +29,6 @@ void ServerHandler::handle_crack(lsp_server* svr, int req_id, uint8_t* payload)
   string lower = spl[2];
   init_subtask_store(req_id, lower.length());
 
-  //PRINT(LOG_INFO, "Subtask store: ");
-  //PRINT(LOG_INFO, print_map(sub_task_store));
   cache_new_req(req_id, req);
   if(free_workers.empty())
   {
@@ -56,7 +52,7 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
 
   int new_req = request_cache.front();
   PRINT(LOG_DEBUG, "Server got request "<<new_req<<" from cache");
-  string h = request_store[new_req]; //can potentially cause a bug
+  string h = request_store[new_req]; 
   int i = 0;
   bool success = false;
   
@@ -70,7 +66,6 @@ void ServerHandler::serve_cached_request(lsp_server* svr)
   while(!free_workers.empty() && i < sub_tasks_remaining[new_req].size())
   {
     int w = free_workers.front(); //this is also a pop
-    //SubTaskStore store = sub_task_store[new_req];
     int task_num = sub_tasks_remaining[new_req].front();
     string pl = create_crack_payload(h, task_num, sub_task_store[new_req]->sub_task_map());
     PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<w<<", bytes: "<<pl.length()+1);
@@ -140,7 +135,7 @@ void ServerHandler::handle_join(lsp_server* svr, int worker_id)
 void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, TaskResult result)
 {
   PRINT(LOG_DEBUG, "Entering: ServerHandler::handle_result");
-  PRINT(LOG_INFO, "The worker "<<worker_id<<" has returned the result");
+  PRINT(LOG_INFO, "The worker "<<worker_id<<" has returned");
   print_state();
 
   /* if result is PASS, just return the result to the requester and
@@ -196,7 +191,6 @@ void ServerHandler::handle_result(lsp_server* svr, string pwd, int worker_id, Ta
     if(!s.empty())
     {
       int t = s.front();
-      //SubTaskStore store = sub_task_store[r];
       string pl = create_crack_payload(request_store[r], t, sub_task_store[r]->sub_task_map());
       PRINT(LOG_INFO, "Server sending payload ["<<pl<<"] to worker "<<worker_id<<", bytes: "<<pl.length()+1);
       lsp_server_write(svr, (void*)pl.c_str(), pl.length(), worker_id);
@@ -271,9 +265,6 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
       it++;
     }
 
-    //if(it == v.end())
-    //  PRINT(LOG_INFO, "Connection id "<<conn_id<<" not found");
-
     //other clean-up
     remove_from_map(worker_task, conn_id);
     remove_from_map(worker_to_request, conn_id);
@@ -322,7 +313,7 @@ void ServerHandler::handle_dead_client(lsp_server* svr, int conn_id)
   }
   else
   {
-    /* this is a requester; so remove it from the request_mapping, so that the
+    /* this is a requester; so remove it from the request mapping, so that the
        cracking result is ignored when it arrives */
     PRINT(LOG_DEBUG, "Client "<<req_id<<" was a requester. This request has been halted.");
     request_divided.erase(req_id);
@@ -344,6 +335,9 @@ void ServerHandler::cache_new_req(int req_id, string hash_pwd)
 }
 
 
+/*
+ * util method that registers a new task in the data structures
+ */
 void ServerHandler::register_new_task(int worker_id, int req_id, int task)
 {
   PRINT(LOG_DEBUG, "Entering ServerHandler::register_new_task");
@@ -380,6 +374,9 @@ void ServerHandler::register_new_task(int worker_id, int req_id, int task)
 }
 
 
+/*
+ * method that decodes the received payload and calls the appropriate method
+ */
 void decode_and_dispatch(ServerHandler* svr_handler, 
                          lsp_server* myserver, 
                          uint8_t* payload, 
@@ -388,7 +385,7 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 {
   if(returned_id != 0 && bytes > 0)
   {
-    PRINT(LOG_INFO, " conn Id in Application: "<<returned_id<<" payload: "<<payload<<" bytes revcd: "<<bytes<<"\n");
+    PRINT(LOG_INFO, "Connection id in application: "<<returned_id<<", payload: "<<payload<<", bytes received: "<<bytes);
     if(payload[0] == 'c')
     {
       svr_handler->handle_crack(myserver, returned_id, payload);
@@ -409,7 +406,6 @@ void decode_and_dispatch(ServerHandler* svr_handler,
       TaskResult result = FAIL;
       svr_handler->handle_result(myserver, "", returned_id, result);
     }
-    //lsp_server_write(myserver, payload, bytes, returned_id);
   }
   else if(returned_id != 0 && bytes == -1)
   {
@@ -420,6 +416,9 @@ void decode_and_dispatch(ServerHandler* svr_handler,
 }
 
 
+/*
+ * util method to print the state of all data structures in the server
+ */
 void ServerHandler::print_state()
 {
   PRINT(LOG_DEBUG, "");
@@ -461,9 +460,6 @@ void ServerHandler::print_state()
   PRINT(LOG_DEBUG, print_map(request_store));
   PRINT(LOG_DEBUG, "");
   
-  PRINT(LOG_DEBUG, "<sub_task_store> request to sub task store");
-  //print_map(request_store);
-  PRINT(LOG_DEBUG, "");
   PRINT(LOG_DEBUG, "==========================================");
   PRINT(LOG_DEBUG, "");
 }
@@ -477,9 +473,7 @@ int main(int argc, char** argv)
     PRINT(LOG_CRIT, "Usage: ./server <port_num>");
     exit(1);
   }
-    /*lsp_set_drop_rate(_DROP_RATE);
-  lsp_set_epoch_cnt(_EPOCH_CNT);
-  lsp_set_epoch_lth(_EPOCH_LTH);*/
+  
   initialize_configuration();
   srand(12345);
 
@@ -498,7 +492,6 @@ int main(int argc, char** argv)
 
   while(1)
   {
-    //printf("Issuing read\n");
     bzero(payload, MAX_PAYLOAD_SIZE);
     int bytes = lsp_server_read(myserver, payload, &returned_id);
     decode_and_dispatch(svr_handler,myserver, payload,returned_id,bytes);
