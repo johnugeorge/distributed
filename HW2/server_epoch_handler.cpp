@@ -1,7 +1,7 @@
 #include"epoch_handler.h"
 using namespace std;
 
-
+/*Timeout is implemented using select system call and it is run in infinite loop*/
 void s_epoch_timer(void* p)
 {
   thread_info_map[pthread_self()]=" SERVER EPOCH HANDLER THREAD   :";
@@ -9,10 +9,6 @@ void s_epoch_timer(void* p)
   int rv;
   char errorbuffer[256];
   lsp_server* server=(lsp_server*)p;
-  //tv.tv_sec = 3;
-  //tv.tv_sec = lsp_get_epoch_lth();
-  //tv.tv_usec = 0;
-  //rv = select(n, &readfds, NULL, NULL, &tv);
   while(1)
   {
 //    tv.tv_sec = 3;
@@ -58,14 +54,14 @@ void s_handle_epoch(lsp_server* server)
 		}
 		client->no_epochs_elapsed=count;
 
-		if((client->conn_state == CONN_REQ_ACK_SENT) && !((client->last_seq_no_rcvd)))
+		if((client->conn_state == CONN_REQ_ACK_SENT) && !((client->last_seq_no_rcvd)))//conn_ack
 		{
 			PRINT(LOG_DEBUG,"Server epoch timer:: Resending CONN_ACK for conn_id "<<client->conn_id<<std::endl); 
 			server_send(server,CONN_ACK,client->conn_id);
 		}
 		else
 		{
-			if(client->last_seq_no_rcvd)
+			if(client->last_seq_no_rcvd)//resending data ack
 			{
 				PRINT(LOG_DEBUG,"Server epoch timer:: Resending DATA_ACK for seq_no "<<client->last_seq_no_rcvd<<" conn_id "<<client->conn_id<<std::endl); 
 				server_send(server,DATA_ACK,client->conn_id,client->last_seq_no_rcvd);
@@ -75,14 +71,14 @@ void s_handle_epoch(lsp_server* server)
 		conn_argv.conn_id=client->conn_id;
 		conn_argv.seq_no=client->last_pckt_sent.seq_no;
 		int lth=0;
-		if( (client->first_data_sent == true) && (get_ack_status(server,client,conn_argv)!=true))
+		if( (client->first_data_sent == true) && (get_ack_status(server,client,conn_argv)!=true))//resending data last sent data packet
 		{
 			PRINT(LOG_DEBUG,"Server epoch timer:: Resending DATA_PCKT for seq_no "<<client->last_pckt_sent.seq_no<<" conn_id "<<client->conn_id<<std::endl); 
 			server_send(server,DATA_PCKT_RESEND,client->conn_id,client->seq_no,client->last_pckt_sent.data,lth);
 		}
 		else
 		{
-			if(!client->outbox_queue.empty())	
+			if(!client->outbox_queue.empty())	//sending packet which was put in outbox queue
 			{
 				pckt_fmt pkt;
 				outbox_struct outbox;

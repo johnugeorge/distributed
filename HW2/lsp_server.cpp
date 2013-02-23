@@ -12,7 +12,9 @@ pthread_t server_network_handler;
  *
  */  
 
-
+/*Creates and returns lsp_server structure. 
+ *  If server cannot be created, returns NULL
+ */
 lsp_server* lsp_server_create(int port)
 {
 	struct addrinfo hints, *servinfo;
@@ -50,13 +52,6 @@ lsp_server* lsp_server_create(int port)
 	}
 
 	freeaddrinfo(servinfo);
-	/*int len;
-	uint8_t* buff =message_encode(1,2,"j 3434f343rf34",len);
-	PRINT(LOG_DEBUG," outlen "<<len;
-	pckt_fmt pkt;
-	pkt.data=(char*)malloc(106);
-	message_decode(21,buff,pkt);
-	//if(pkt.data[0]=='\0')PRINT(LOG_DEBUG,"true"<< strlen(pkt.data);else PRINT(LOG_DEBUG,"false"<<strlen(pkt.data);*/
 	void *s_network_handler(void*);
 	void *s_epoch_timer(void*);
 
@@ -68,6 +63,17 @@ lsp_server* lsp_server_create(int port)
 	return new_server;
 }
 
+
+/*      
+ *            If server inbox queue is not empty
+ *                    Pop the packet,
+ *                    If  it is a data message
+ *                               Populate connection Id and payload from message
+ *                                Return length of packet as return value
+ *                    If it is a disconnection message
+ *                              Populate connection Id from message and Payload as Null
+ *                               Return -1
+ */
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 {
  if(a_srv == NULL)
@@ -107,6 +113,12 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 
 }
 
+/*If last message which was sent from the server to the specified client, is not acknowledged,
+ *                     Put into outbox queue of the client
+ *                         Else
+ *                      Send the packet to the client.
+ *
+ */
 bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 {
 	int len;
@@ -170,6 +182,8 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int lth, uint32_t conn_id)
 	}
 }
 
+/*Free client structure for that specified conn_id and erase from the map. 
+ * Once, it is erased from map, server stops receiving and sending messages from that client.*/
 bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 {
 	if(a_srv->client_conn_info.find(conn_id) == a_srv->client_conn_info.end())
@@ -182,6 +196,10 @@ bool lsp_server_close(lsp_server* a_srv, uint32_t conn_id)
 	a_srv->client_conn_info.erase(conn_id);
         delete(client_conn);
 }
+
+/* Depending on the packet type,calculate seq no
+ *  * Marshall the packet to create buffer to be sent
+ *   * and call sendto*/
 
 void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int seq_no,const char *payload,int length)
 {
@@ -256,7 +274,7 @@ void server_send(lsp_server* server,pckt_type pkt_type,int client_conn_id,int se
 	free(buff);
 }
 
-
+/*Get Ack Status for Seq No which was received*/
 
 bool get_ack_status(lsp_server* server,client_info* client,conn_arg arg)
 {
@@ -264,6 +282,9 @@ bool get_ack_status(lsp_server* server,client_info* client,conn_arg arg)
 	bool value= (client->conn_map)[arg];
 	return value;
 }
+
+/*Set Ack Status for Seq No which was received*/
+
 void set_ack_status(lsp_server* server,client_info* client,conn_arg arg, bool value)
 {
 	

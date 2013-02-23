@@ -14,7 +14,11 @@ pthread_t client_network_handler;
 
 
 
-
+/* lsp_client_create
+ * Client waits for configured epoch lengths to receive 
+ * connection response from server. Return false if client doesn’t get any 
+ * reply otherwise return a pointer to a struct of type lsp client.
+ */
 
 lsp_client* lsp_client_create(const char* src, int port)
 {
@@ -39,9 +43,6 @@ lsp_client* lsp_client_create(const char* src, int port)
 		sockfd = 0;
 	}
 
-  /*
-   * code to send request to server goes here 
-   */
 
   //start the client side epoch
  void *c_epoch_timer(void*);
@@ -74,11 +75,17 @@ lsp_client* lsp_client_create(const char* src, int port)
 	  }
   }
   pthread_mutex_unlock(&global_mutex);
-//  while(new_client->conn_state == CONN_REQ_SENT){;}
 
 
   return new_client;
 }
+/*lsp_client_read 
+ * Pop message from the queue 
+ * if payload_size ==0 -> disconnection message
+ *                        send -1 to application
+ * else
+ *     populate connection id and payload 
+ *     send payload_size as return parameter to application*/
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 {
@@ -112,6 +119,13 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	 return 0;
  }
 }
+
+/*lsp_client_write:  If last message which was sent from the client, is not acknowledged,
+ *                     Put into outbox queue of the client
+ *                          Else
+ *                     Send the packet to the server.
+ *
+ */
 
 bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
 {
@@ -154,6 +168,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
 	}
 
 }
+/* close client connection*/
 
 bool lsp_client_close(lsp_client* a_client)
 {
@@ -162,6 +177,9 @@ bool lsp_client_close(lsp_client* a_client)
 	close(a_client->socket_fd);
 }
 
+/* Depending on the packet type,calculate seq no
+ * Marshall the packet to create buffer to be sent
+ * and call sendto*/
 void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *payload,int length)
 {
 	PRINT(LOG_DEBUG," In client send "<<client->conn_id<<"\n");
@@ -229,12 +247,13 @@ void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *pa
 	free(buff);
 }
 
+/*Get Ack Status for Seq No which was received*/
 bool get_ack_status(lsp_client* client,conn_arg arg)
 {
 	bool value = (client->conn_map)[arg];
 	return value;
 }
-
+/*Set Ack Status for Seq No which was received*/
 void set_ack_status(lsp_client* client,conn_arg arg, bool value)
 {
 
