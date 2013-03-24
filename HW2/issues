@@ -1,0 +1,1 @@
+1) after worker returns, assign it a new task if available
