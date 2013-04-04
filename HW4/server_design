@@ -1,0 +1,190 @@
+data structs:
+
+/* mapping from a worker to a sub-task */
+map<int, string> worker_task
+
+/* mapping from a worker to a requester */
+map<int, int> worker_to_request
+
+typedef pair<int, string> w_task
+
+/* mapping from a request to each of its sub-tasks being handled 
+by a different worker. Eg: request 4's sub task aaaa-bbbb handled by worker 8 would be:
+map<4, pair<8, aaaa-bbbb> */
+map<int, list<w_task> > request_mapping
+
+/* mapping from a crack request to each of its sub-tasks 
+ * this is more like a static data struct that just records how a crack request is to be
+ * divided
+ */
+map<int, list<string> > request_division
+
+/* queue of free workers */
+queue<int> free_workers
+
+==============================================
+
+server()
+{
+  while(1)
+  {
+    if(JOIN)
+      handle_join()
+    else if(CRACK)
+      handle_crack()
+    else if(PASS or FAIL)
+      handle_result(worker_id, result)
+    else if(NULL or 0)
+    {
+      /* this case is when a client is dead. The client can be a requester or a worker. We need to differentiate */
+      handle_dead_client(conn_id)
+    }
+  }
+}
+
+bool handle_crack(int req_id, string req)
+{
+  if(free_workers.isEmpty())
+    return false
+
+  list<string> sub_tasks = req.divide()
+  request_division.put(req_id, sub_tasks)
+  i = 0
+  res = false
+
+  while(free_workers.has_next() || i > sub_tasks.size())
+  {
+    w = free_workers.next() //this is also a pop
+    lsp_server_write(w, sub_tasks[i])
+
+    if(success())
+    {
+      register_new_task(w, req_id, sub_tasks[i])
+      i++
+      res = true
+    }
+    else
+      free_workers.push_back(w) //idea: put the worker at the end of Q if msg did not reach it
+  }
+
+  return res
+}
+
+bool handle_join(int worker_id)
+{
+  for(r in request_division.keys())
+  {
+    in_progress = request_mapping.get(r)
+    divided_tasks = request_division.get(r)
+
+    for(d in divided_tasks)
+    {
+      if(d in in_progress) //questionable, how do we implement the 'in'
+        continue
+      else
+      {
+        lsp_server_write(worker_id, d)
+
+        if(success())
+        {
+          register_new_task(worker_id, r, d)
+          return true
+        }
+      }
+    }
+  }
+
+  //either no task is left or we could'nt pass the msg to the worker
+  free_workers.push_back(worker_id)
+  return false //need review with the rest of code in place; what does a false mean?
+}
+
+void handle_result(int worker_id, string result)
+{
+  /* whether result is PASS or FAIL, just return the result to the requester and
+   * do clean-up 
+   */
+
+  req_id = worker_to_request.get(worker_id)
+  curr_sub_tasks = request_mapping.get(req_id)
+
+  if(curr_sub_tasks == NULL)
+  {
+    //this means the req_id client could be dead; so just ignore the result
+    return
+  }
+  
+  bool success = lsp_server_write(req_id, result)
+  if(success)
+  {
+    worker_to_request.remove(worker_id)
+    for(c in curr_sub_tasks)
+    {
+      lsp_server_write(c.first, STOP_TASK)
+      //error-checking needed here?
+      worker_to_request.remove(c.first)
+      worker_task.remove(c.first)
+    }
+    request_mapping.remove(req_id)
+    free_workers.push_back(worker_id)
+  }
+  else
+    //what to do if msg sending fails?
+}
+
+void handle_dead_client(int conn_id)
+{
+  //first need to figure out if this is a requester or a worker
+  bool worker = false
+  int req_id = conn_id
+  if(conn_id in worker_to_request)
+  {
+    worker = true
+    req_id = worker_to_request.get(conn_id)
+  }
+   
+  if(worker)
+  {
+    /* this is a worker who has just been discovered to be dead; 
+    need to re-assign the task to another worker and modify the registry for this worker */
+    
+  }
+  else
+  {
+    /* this is a requester; so remove it from the request_mapping, so that the
+    cracking result is ignored when it arrives*/
+    request_mapping.remove(req_id)
+  }
+}
+
+void register_new_task(int worker_id, int req_id, string task)
+{
+  worker_task.put(worker_id, task)
+  worker_to_request.put(worker_id, req_id)
+
+  /* the below call is an UPSERT */
+  request_mapping.put(req_id, pair<worker_id, task>)
+}
+
+
+
+=================================================
+
+worker.cpp
+
+/* worker just takes a task, hash and returns true if password found */
+static char letters[26] = {a, b, c, ... z}
+
+bool find_password(string hash, string range)
+{
+}
+
+bool find_password(string hash, string curr, string lo, string hi)
+{
+}
+
+/* assume some algorithm here to SHA hash a string */
+string hash_it(string clear_text)
+{
+  return hashed_string;
+}

@@ -1,0 +1,34 @@
+a) 1 worker joins. request joins 
+
+   Passwords in all buckets
+ 
+done for len=3,5
+
+b) 2 worker joins, request joins
+
+done for len=3,5
+
+c) 1 worker joins. request joins and gets result. another request joins and gets result
+
+d) 2 worker joins. request joins and gets result. another request joins and gets result
+
+e) a)-d) opposite with request joining first
+
+PROFILING:
+
+drop rate 0, keep epoch fixed
+1- test.sh
+2- test3.sh
+3- both the above tests with 1 worker, 2 workers and 4 workers
+
+drop rate 0.2, keep epoch fixed
+1- test.sh
+2- test3.sh
+3- both the above tests with 1 worker, 2 workers and 4 workers
+
+drop rate 0.4, keep epoch fixed
+1- test.sh
+2- test3.sh
+3- both the above tests with 1 worker, 2 workers and 4 workers
+
+drop rate 0 and varying epoch length and count

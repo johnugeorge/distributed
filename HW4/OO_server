@@ -1,0 +1,213 @@
+int DIVISIONS = 5
+
+class Registry
+{
+  private:
+  map<int, string> worker_task
+  map<int, int> worker_to_request
+  //typedef pair<int, string> w_task
+  map<int, list<WorkerTask> > request_divided //this list must remember order
+  map<int, list<int> > sub_tasks_remaining
+  list<int> requests_in_progress
+  queue<int> free_workers
+  map<int, string> request_cache //map must remember order, act like a Q
+  string[] sub_tasks
+
+  public:
+
+  Registry()
+  {
+    //.. init all data structs, trivial
+    sub_tasks = //assign based on number of chars in pwd; this is fixed
+  }
+
+  void handle_crack(int req_id, string req)
+  {
+    cache_new_req(req_id, req)
+    if(free_workers.isEmpty())
+    {
+      /* all we can do is cache the request and return */
+      return
+    }
+
+    int new_req = cache.head().first
+    string h = cache.head().second
+    i = 0
+    bool success = false
+
+    while(free_workers.has_next() || i > sub_tasks.size())
+    {
+      w = free_workers.next() //this is also a pop
+      success = lsp_server_write(w, sub_tasks[i], h)
+
+      if(success)
+      {
+        register_new_task(w, req_id, i)
+        i++
+      }
+    }
+    
+    if(success) requests_in_progress.add(req_id)
+  }
+
+  void handle_join(int worker_id)
+  {
+    for(r in requests_in_progress)
+    {
+      s = sub_tasks_remaining.get(r)
+      if(s is not empty)
+      {
+        t = s.next()
+        bool success =lsp_server_write(worker_id, t) //and also the hash string
+	if(success)
+	{
+	  register_new_task(worker_id, r, t)
+	  return
+	}
+	else
+	  ??
+      }
+    }
+   
+    if(request_cache.isEmpty()
+    {
+      //either no task is left or we could'nt pass the msg to the worker
+      free_workers.push_back(worker_id)
+    }
+    else
+    {
+      req_id = request_cache.head()
+      bool success =lsp_server_write(worker_id, 0) //and also the hash string 
+      if(success)
+      {
+        request_cache.pop()
+        register_new_task(worker_id, req_id, 0)
+        return
+      }
+    }
+  }
+
+  void handle_result(int worker_id, int result)
+  {
+    /* whether result is PASS or FAIL, just return the result to the requester and
+     * assign a new request if exists to this worker
+     */
+
+    req_id = worker_to_request.get(worker_id)
+
+    if(req_id not in request_in_progress)
+    {
+      //this means the req_id client could be dead; so just ignore the result
+      return
+    }
+    
+    if(result == TaskResult.PASS)
+    {
+       bool success = lsp_server_write(req_id, result)
+       // no need to care about whether success is true or false. If client is dead, let it be.
+       return
+    }
+
+    /* if its a FAIL, we need a DS that combines results if fail; if all fail then notify requester of a failure */
+    list<WorkerTask> tasks = request_divided.get(req_id)
+    for(w in WorkerTask)
+    {
+      if(w.worker_id == worker_id)
+        w.result = result
+    }
+  }
+
+  void handle_dead_client(int conn_id)
+  {
+    //first need to figure out if this is a requester or a worker
+    bool worker = false
+    int req_id = conn_id
+    if(conn_id in worker_to_request || conn_id in free_workers)
+    {
+      worker = true
+      req_id = worker_to_request.get(conn_id)
+    }
+
+    if(worker)
+    {
+      /* this is a worker who has just been discovered to be dead;
+      need to re-assign the task to another worker and modify the registry for this worker */
+      
+      task = worker_task.get(conn_id)
+      if(free_workers.isEmpty())
+      {
+        request_divided.get(req_id).remove(task)
+
+	/*below should check if at all there is an entry for req_id */
+	request_remaining.get(req_id).add(task)
+      }
+      else
+      {
+        i = free_workers.next()
+        success = lsp_server_write(i, task)
+        if(success)
+	  register_new_task(i, req_id, task)
+
+	/* make sure conn_id is removed from everywhere */
+      }
+    }
+    else
+    {
+      /* this is a requester; so remove it from the request_mapping, so that the
+      cracking result is ignored when it arrives */
+      request_divided.remove(req_id)
+      request_in_progress.remove(req_id)
+    }
+  }
+
+  void register_new_task(int worker_id, int req_id, int task)
+  {
+    worker_task.put(worker_id, task)
+    worker_to_request.put(worker_id, req_id)
+
+    /* the below call is an UPSERT */
+    request_divided.put(req_id, pair<worker_id, task>)
+
+    /* below call needs to check if req_id exists; if not it means the req
+     * just started, so it needs to add as well */
+    sub_tasks_remaining.get(req_id).remove(task)
+  }
+
+  bool is_task_available()
+  {
+    for(r in request_division.keys())
+    {
+      in_progress = request_mapping.get(r)
+      divided_tasks = request_division.get(r)
+
+      for(d in divided_tasks)
+      {
+        if(d in in_progress) //questionable, how do we implement the 'in'
+          continue
+        else
+	  return true
+      }
+    }
+  }
+
+  void cache_new_req(int req_id, string request)
+  {
+    /* appropriate division of task */
+    request_cache.put(req_id, sub_tasks)
+  }
+}
+
+/* might not use this */
+class WorkerTask
+{
+  public:
+  int conn_id
+  int task_num
+  TaskResult result
+}
+
+enum TaskResult
+{
+  FAIL = 0
+  PASS = 1
+}
