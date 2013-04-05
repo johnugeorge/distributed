@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include "lsp_rpc.h"
 #include <string>
+#include "Queue.h"
 
 //#include "lspmessage.pb.h"
 
@@ -81,6 +82,7 @@ typedef struct {
     unsigned int            lastReceivedAck;
     unsigned int            epochsSinceLastMessage;
     std::queue<LSPMessage*> outbox;
+    Queue<LSPMessage*> rpcOutbox;
 } Connection;
 
 #endif

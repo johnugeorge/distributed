@@ -255,7 +255,9 @@ void* ClientReadThread(void *params){
         
         // attempt to read
         sockaddr_in addr;
-        LSPMessage *msg = network_read_message(client->connection, 0.5,&addr);
+        //LSPMessage *msg = network_read_message(client->connection, 0.5,&addr);
+        LSPMessage* msg = rpc_read_message(client, 0.5);
+
         if(msg) {
             if(msg->connid() == client->connection->id){
                 pthread_mutex_lock(&(client->mutex));
@@ -355,4 +357,46 @@ void cleanup_connection(Connection *s){
     delete s->addr;
     delete s;
 }
-    
+
+
+LSPMessage* rpc_read_message(lsp_client* client, double timeout)
+{
+  timeval t = network_get_timeval(timeout);
+  while(true)
+  {
+    int result = select(NULL, NULL, NULL, NULL, &t);
+    if(result == -1)
+    {
+      printf("Error receiving message: %s\n", strerror(errno));
+      return NULL;
+    }
+    else if(result == 0)
+    {
+      // a packet was received, let's parse it
+      Connection* conn = client->connection;
+      int i = conn->id;
+      LSPMessage1* msg = recvfn_1(&i, client->clnt_handle);
+      if(msg == NULL)
+      {
+        clnt_perror(client->clnt_handle, "recvfn call failed:");
+        printf("recvfn call failed\n");
+        exit(1);
+      }
+
+      LSPMessage pkt;
+      pkt.conn_id = msg->connid;
+      pkt.seq_num = msg->seqnum;
+
+      if(pkt.seq_num == -1)
+      {
+        printf("Client polled. Message is empty.\n");
+        return NULL;
+      }
+
+      pkt.data = msg->payload;
+      if(network_should_drop())
+        continue; // drop the packet and continue reading
+      return &pkt;
+    }
+  }
+}

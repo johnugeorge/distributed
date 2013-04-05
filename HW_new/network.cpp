@@ -106,12 +106,17 @@ bool network_wait_for_connection(Connection *conn, double timeout){
 
 // acknowledge the last received message
 bool network_acknowledge(Connection *conn){
-    LSPMessage *msg = network_build_message(conn->id,conn->lastReceivedSeq,NULL,0);
-    return network_send_message(conn,msg);
+    LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
+    
+    return network_send_message(conn, msg);
 }
 
 bool network_send_message(Connection *conn, LSPMessage *msg){
-    // sends an LSP Message
+  //instead of sending the msg using sendto, we will just push it into
+  //this connection's global outbox queue
+  conn->rpcOutbox.putq(msg);
+  
+  // sends an LSP Message
 /*    
     if(DEBUG) printf("Sending message (%d,%d,\"%s\")\n",msg->connid(),msg->seqnum(),msg->payload().c_str());
 
@@ -133,7 +138,7 @@ bool network_send_message(Connection *conn, LSPMessage *msg){
 LSPMessage* network_read_message(Connection *conn, double timeout, sockaddr_in *addr){
     // attmpts to read a message from a Connection. Returns the message if one was read,
     // or it returns NULL if the timeout was reached before a message was received.
-/*    
+  /*    
     fd_set read;
     FD_ZERO(&read);
     FD_SET(conn->fd, &read);

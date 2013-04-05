@@ -226,8 +226,9 @@ void* ServerEpochThread(void *params){
                 continue;
             
              // send ACK for most recent message
-            if(DEBUG) printf("Server acknowledging last received message %d for conn %d\n",conn->lastReceivedSeq,conn->id);
+            if(DEBUG) printf("Server acknowledging last received message %d for conn %d\n", conn->lastReceivedSeq,conn->id);
             network_acknowledge(conn);
+            //rpc_ack(conn);
             
             // resend the first message in the outbox, if any
             if(conn->outbox.size() > 0) {
@@ -293,6 +294,7 @@ void* ServerReadThread(void *params){
                     
                     // send an ack for the connection request
                     network_acknowledge(conn);
+                    //rpc_ack(conn);
                     
                     // insert this connection into the list of connections
                     server->clients.insert(std::pair<int,Connection*>(conn->id,conn));
@@ -325,6 +327,7 @@ void* ServerReadThread(void *params){
                         
                             // send ack for this message
                             network_acknowledge(conn);
+                            //rpc_ack(conn)
                         }
                     }
                 }
@@ -417,5 +420,39 @@ int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 
 LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
 {
+  printf("In recvfn \n");
+  printf("Incoming packet conn id %d \n", *conn_id);
 
+  std::map<unsigned int, Connection*>::iterator it;
+  it = sLspServer->clients.find(*conn_id);
+  LSPMessage1 pkt;
+  if(it != sLspServer->clients.end())
+  {
+    Connection* conn = it->second;
+    LSPMessage* msg = new LSPMessage();
+
+    if(conn->rpcOutbox.empty())
+    {
+      pkt.seqnum = -1;
+      return &pkt;
+    }
+
+    conn->rpcOutbox.getq(msg);
+    pkt.seqnum = msg->seq_num;
+    pkt.connid = msg->conn_id;
+    pkt.payload = (char*) msg->data.c_str();
+    return &pkt;
+  }
+  else
+  {
+    pkt.connid = *conn_id;
+    pkt.seqnum = -1;
+    return &pkt;
+  }
+}
+
+void rpc_ack(Connection* conn)
+{
+  LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
+  conn->rpcOutbox.putq(msg);
 }
