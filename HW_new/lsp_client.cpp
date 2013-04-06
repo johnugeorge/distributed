@@ -106,20 +106,6 @@ lsp_client* lsp_client_create(const char* dest, int port){
     }*/
 }
 
-void client_acknowledge(lsp_client* client)
-{
-   Connection* conn = client->connection;
-    LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
-
-   send_message(client, msg);
-}
-
-void send_message(lsp_client* client, LSPMessage* msg)
-{
-  client_send_message(client, msg);
-}
-
-
 void client_send_message(lsp_client* client,LSPMessage* msg)
 {
 	printf(" client_send_message start\n");
@@ -229,14 +215,12 @@ void* ClientEpochThread(void *params){
         } else if(client->connection->status == CONNECTED){
             // send ACK for most recent message
             if(DEBUG) printf("Client acknowledging last received message: %d\n",client->connection->lastReceivedSeq);
-            //network_acknowledge(client->connection);
-            client_acknowledge(client);
+            network_acknowledge(client->connection);
             
             // resend the first message in the outbox, if any
             if(client->connection->outbox.size() > 0) {
                 if(DEBUG) printf("Client resending msg %d\n",client->connection->outbox.front()->seqnum());
-                //network_send_message(client->connection,client->connection->outbox.front());
-               send_message(client, client->connection->outbox.front()); 
+                network_send_message(client->connection,client->connection->outbox.front());
             }
         } else {
             if(DEBUG) printf("Unexpected client status: %d\n",client->connection->status);
@@ -301,8 +285,7 @@ void* ClientReadThread(void *params){
                         client->inbox.push(msg);
                         
                         // send ack for this message
-                        //network_acknowledge(client->connection);
-                        client_acknowledge(client);
+                        network_acknowledge(client->connection);
                     }
                 }
                 
@@ -337,8 +320,7 @@ void* ClientWriteThread(void *params){
             // we have received an ack for the last message, and we haven't sent the
             // next one out yet, so if it exists, let's send it now
             if(client->connection->outbox.size() > 0) {
-                //network_send_message(client->connection,client->connection->outbox.front());
-                send_message(client, client->connection->outbox.front());
+                network_send_message(client->connection,client->connection->outbox.front());
                 lastSent = client->connection->outbox.front()->seqnum();
             }                
         }

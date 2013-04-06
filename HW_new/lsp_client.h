@@ -24,6 +24,4 @@ void* ClientWriteThread(void *params);
 void cleanup_connection(Connection *s);
 void cleanup_client(lsp_client *client);
 void client_send_message(lsp_client* client,LSPMessage* msg);
-void send_message(lsp_client* client, LSPMessage* msg);
-void client_acknowledge(lsp_client* client);
 LSPMessage* rpc_read_message(lsp_client* client, double timeout);
