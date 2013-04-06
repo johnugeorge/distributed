@@ -85,12 +85,12 @@ lsp_client* lsp_client_create(const char* dest, int port){
         client->connection->status = CONNECTED;
         
         // kick off ReadThread to catch incoming messages
-  /*      int res;
+        int res;
         if((res = pthread_create(&(client->readThread), NULL, ClientReadThread, (void*)client)) != 0){
             printf("Error: Failed to start the read thread: %d\n",res);
             lsp_client_close(client);
             return NULL;
-        }
+        }/*
         if((res = pthread_create(&(client->writeThread), NULL, ClientWriteThread, (void*)client)) != 0){
             printf("Error: Failed to start the write thread: %d\n",res);
             lsp_client_close(client);

@@ -2,15 +2,21 @@
 #include "lsp.h"
 #include "Queue.h"
 
+typedef struct{
+	LSPMessage* lspmsg;
+	unsigned long addr;
+	unsigned short port;
+}rpcInbox_struct;
+
 typedef struct {
     unsigned int            port;
     unsigned int            nextConnID;
     bool                    running;
     Connection              *connection;
     std::map<unsigned int,Connection*> clients;
-    std::set<std::string>   connections;
+    std::set<unsigned long>   connections;
     std::queue<LSPMessage*> inbox;
-    Queue<LSPMessage> rpcInbox;
+    Queue<rpcInbox_struct> rpcInbox;
     pthread_mutex_t         mutex;
     pthread_t               readThread;
     pthread_t               writeThread;
@@ -31,5 +37,6 @@ void* ServerReadThread(void *params);
 void* ServerWriteThread(void *params);
 void* RPCThread(void *params);
 extern void lsp_program_1(struct svc_req *rqstp, register SVCXPRT *transp);
+LSPMessage* rpc_read_message(Connection *conn, double timeout,unsigned long& addr,unsigned short& port);
 void cleanup_connection(Connection *s);
 

@@ -1,6 +1,7 @@
 #include "lsp_server.h"
 #include <rpc/pmap_clnt.h>
-
+#include <sstream>
+#include <iostream>
 
 double epoch_delay = _EPOCH_LTH; // number of seconds between epochs
 unsigned int num_epochs = _EPOCH_CNT; // number of epochs that are allowed to pass before a connection is terminated
@@ -73,14 +74,14 @@ lsp_server* lsp_server_create(int port){
         lsp_server_close(server,0);
         return NULL;
     }
-        
+       */ 
     // create the read/write threads listening on a certain port
     if((res = pthread_create(&(server->readThread), NULL, ServerReadThread, (void*)server)) != 0){
         printf("Error: Failed to start the epoch thread: %d\n",res);
         lsp_server_close(server,0);
         return NULL;
     } 
-    if((res = pthread_create(&(server->writeThread), NULL, ServerWriteThread, (void*)server)) != 0){
+    /*if((res = pthread_create(&(server->writeThread), NULL, ServerWriteThread, (void*)server)) != 0){
         printf("Error: Failed to start the write thread: %d\n",res);
         lsp_server_close(server,0);
         return NULL;
@@ -259,26 +260,31 @@ void* ServerReadThread(void *params){
     // and take the appropriate action
     
     lsp_server *server = (lsp_server*)params;
-    char host[128];
+    //char host[128];
+    unsigned long host;
     while(true){     
         pthread_mutex_lock(&(server->mutex));
         if(!server->running)
             break;       
         pthread_mutex_unlock(&(server->mutex));
         
-        sockaddr_in addr;
-        LSPMessage *msg = network_read_message(server->connection, 0.5, &addr);
+	unsigned long  addr;
+	unsigned short  port;
+        LSPMessage *msg = rpc_read_message(server->connection, 0.5 ,addr,port);
+	host=addr+port;
         if(msg) {
             // we got a message, let's parse it
+            printf(" we got a message, let's parse it \n");
             pthread_mutex_lock(&(server->mutex));
+	    std::cout<<" host "<<addr<<"  "<<server->connections.count(addr)<<"\n";
             if(msg->connid() == 0 && msg->seqnum() == 0 && msg->payload().length() == 0){
                 // connection request, if first time, make the connection
-                sprintf(host,"%s:%d",inet_ntoa(addr.sin_addr),addr.sin_port);
+                //sprintf(host,"%s:%d",inet_ntoa(addr.sin_addr),addr.sin_port);
                 if(server->connections.count(host) == 0){
                     // this is the first time we've seen this host, add it to the server's list of seen hosts
                     server->connections.insert(host);
                     
-                    if(DEBUG) printf("Connection request received from %s\n",host);
+                    if(DEBUG) printf("Connection request received from %d\n",host);
                     
                     // build up the new connection object
                     Connection *conn = new Connection();
@@ -397,7 +403,7 @@ void cleanup_connection(Connection *s){
 
 int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 {
-	 printf("In sendFn \n");
+	printf("In sendFn \n");
 	printf(" Incoming Packet Conn Id %d \n", msg->connid);
 	printf(" Incoming Packet Seq No %d \n", msg->seqnum);
 	printf(" Incoming Packet Payload %s\n", msg->payload);
@@ -405,12 +411,22 @@ int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 	static int ret;
 	int conn_id=msg->connid;
 	int seq_no=msg->seqnum;
+	char *host= new char[INET6_ADDRSTRLEN];
+	rpcInbox_struct inbox;
 	std::string payload=msg->payload;
-	LSPMessage pkt;
-	pkt.conn_id=conn_id;
-	pkt.seq_num=seq_no;
-	pkt.data=payload;
-	sLspServer->rpcInbox.putq(pkt);
+	LSPMessage *pkt = new LSPMessage;
+	pkt->conn_id=conn_id;
+	pkt->seq_num=seq_no;
+	pkt->data=payload;
+	//std::string host;
+	inbox.lspmsg= pkt;
+
+	//inet_ntop(AF_INET, &(req->rq_xprt->xp_raddr.sin_addr), host, INET6_ADDRSTRLEN);
+	inbox.addr=req->rq_xprt->xp_raddr.sin_addr.s_addr;
+	inbox.port=req->rq_xprt->xp_raddr.sin_port;
+	//printf(" host %s \n",hostname.c_str());
+	//std::cout<<" host "<<inbox.addr<<"\n";
+	sLspServer->rpcInbox.putq(inbox);
 	if((conn_id == 0) && (seq_no== 0))
 		ret=sLspServer->nextConnID;
 	else
@@ -425,22 +441,23 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
 
   std::map<unsigned int, Connection*>::iterator it;
   it = sLspServer->clients.find(*conn_id);
-  LSPMessage1 pkt;
-  if(it != sLspServer->clients.end())
+  static LSPMessage1 pkt;
+ if(it != sLspServer->clients.end())
   {
     Connection* conn = it->second;
-    LSPMessage* msg = new LSPMessage();
-
+    LSPMessage* msg;
     if(conn->rpcOutbox.empty())
     {
+      pkt.connid=*conn_id;
       pkt.seqnum = -1;
+      pkt.payload = "a";
       return &pkt;
     }
-
     conn->rpcOutbox.getq(msg);
     pkt.seqnum = msg->seq_num;
     pkt.connid = msg->conn_id;
-    pkt.payload = (char*) msg->data.c_str();
+    //pkt.payload = (char*) (msg->data.c_str());
+    pkt.payload = "a";
     return &pkt;
   }
   else
@@ -451,8 +468,33 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
   }
 }
 
-void rpc_ack(Connection* conn)
+
+LSPMessage* rpc_read_message(Connection *conn, double timeout,unsigned long& addr,unsigned short& port)
 {
-  LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
-  conn->rpcOutbox.putq(msg);
+	timeval t = network_get_timeval(timeout);
+	while(true)
+	{
+		int result = select(NULL, NULL, NULL, NULL, &t);
+		if(result == -1){
+			printf("Error receiving message: %s\n",strerror(errno));
+			return NULL;
+		} else if (result == 0) {
+			if(DEBUG) printf("Receive timed out after %.2f seconds\n",timeout);
+
+			
+			LSPMessage* pkt= NULL;
+			rpcInbox_struct inbox;
+			if(!sLspServer->rpcInbox.empty())
+			{
+				sLspServer->rpcInbox.getq(inbox);
+				pkt=inbox.lspmsg;
+				addr=inbox.addr;
+				port=inbox.port;
+	//			std::cout<<" host "<<inbox.addr<<"\n";
+			}
+			if(network_should_drop())
+				continue; // drop the packet and continue reading
+			return pkt;
+		}
+	}
 }
