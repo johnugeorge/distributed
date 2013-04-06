@@ -274,10 +274,10 @@ void* ServerReadThread(void *params){
 	host=addr+port;
         if(msg) {
             // we got a message, let's parse it
-            printf(" we got a message, let's parse it \n");
-	    msg->print();
+            if(DEBUG) printf(" we got a message, let's parse it \n");
+	    if(DEBUG) msg->print();
             pthread_mutex_lock(&(server->mutex));
-	    std::cout<<" host "<<addr<<"  "<<server->connections.count(addr)<<"\n";
+	    if(DEBUG) std::cout<<" host "<<addr<<"  "<<server->connections.count(addr)<<"\n";
             if(msg->connid() == 0 && msg->seqnum() == 0 && msg->payload().length() == 0){
                 // connection request, if first time, make the connection
                 //sprintf(host,"%s:%d",inet_ntoa(addr.sin_addr),addr.sin_port);
@@ -404,11 +404,11 @@ void cleanup_connection(Connection *s){
 
 int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 {
-	printf("In sendFn \n");
-	printf(" Incoming Packet Conn Id %d \n", msg->connid);
-	printf(" Incoming Packet Seq No %d \n", msg->seqnum);
-	printf(" Incoming Packet Payload %s\n", msg->payload);
-	printf(" Incoming Packet size of Payload %d \n", strlen(msg->payload));
+	if(DEBUG) printf("In sendFn \n");
+	if(DEBUG) printf(" Incoming Packet Conn Id %d \n", msg->connid);
+	if(DEBUG) printf(" Incoming Packet Seq No %d \n", msg->seqnum);
+	if(DEBUG) printf(" Incoming Packet Payload %s\n", msg->payload);
+	if(DEBUG) printf(" Incoming Packet size of Payload %d \n", strlen(msg->payload));
 	static int ret;
 	int conn_id=msg->connid;
 	int seq_no=msg->seqnum;
@@ -437,8 +437,8 @@ int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 
 LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
 {
-  printf("In recvfn \n");
-  printf("Incoming packet conn id %d \n", *conn_id);
+  if(DEBUG) printf("In recvfn \n");
+  if(DEBUG) printf("Incoming packet conn id %d \n", *conn_id);
 
   std::map<unsigned int, Connection*>::iterator it;
   it = sLspServer->clients.find(*conn_id);
@@ -453,8 +453,8 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
       pkt.connid=*conn_id;
       pkt.seqnum = -1;
       pkt.payload = "\0";
-      printf(" Outbox Empty\n");
-      printf("In recvfn end \n");
+      if(DEBUG) printf(" Outbox Empty\n");
+      if(DEBUG) printf("In recvfn end \n");
       return &pkt;
     }
     conn->rpcOutbox.getq(msg);
@@ -462,8 +462,8 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
     pkt.connid = msg->conn_id;
     pkt.payload = (char*) (msg->data.c_str());
     //pkt.payload = "a";
-    printf(" From Outbox Conn id: %d seq_no %d\n",msg->conn_id,msg->seq_num);
-    printf("In recvfn end \n");
+    if(DEBUG) printf(" From Outbox Conn id: %d seq_no %d\n",msg->conn_id,msg->seq_num);
+    if(DEBUG) printf("In recvfn end \n");
     return &pkt;
   }
   else
@@ -471,8 +471,8 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
     pkt.connid = *conn_id;
     pkt.seqnum = -1;
     pkt.payload = "\0";
-    printf(" Client not added to map\n");
-    printf("In recvfn end\n");
+    if(DEBUG) printf(" Client not added to map\n");
+    if(DEBUG) printf("In recvfn end\n");
     return &pkt;
   }
 }
