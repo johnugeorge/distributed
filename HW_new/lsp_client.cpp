@@ -127,6 +127,7 @@ void client_send_message(lsp_client* client,LSPMessage* msg)
         pkt.connid=msg->conn_id;
 	pkt.seqnum=msg->seq_num;
 	pkt.payload=(char*)(msg->data).c_str();
+        pthread_mutex_lock(&(client->rpcMutex));
 	int* result = sendfn_1(&pkt,client->clnt_handle);
 	/* test if the RPC succeeded */
 	if (result == NULL) {
@@ -135,6 +136,7 @@ void client_send_message(lsp_client* client,LSPMessage* msg)
 		exit(1);
 	}
 	printf(" client_send_message Conn Id %d end\n",*result);
+        pthread_mutex_unlock(&(client->rpcMutex));
 	client->connection->id=*result;
 
 }
@@ -380,8 +382,8 @@ void cleanup_connection(Connection *s){
 LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 {
   timeval t = network_get_timeval(timeout);
-  //while(true)
-  //{
+  while(true)
+  {
     int result = select(NULL, NULL, NULL, NULL, &t);
     if(result == -1)
     {
@@ -393,6 +395,8 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
       // a packet was received, let's parse it
       Connection* conn = client->connection;
       int i = conn->id;
+      pthread_mutex_lock(&(client->rpcMutex));
+
       LSPMessage1* msg = recvfn_1(&i, client->clnt_handle);
       if(msg == NULL)
       {
@@ -400,6 +404,7 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
         printf("recvfn call failed\n");
         exit(1);
       }
+      pthread_mutex_unlock(&(client->rpcMutex));
 
 
       LSPMessage* pkt = new LSPMessage;
@@ -413,9 +418,9 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
       }
 
       pkt->data = msg->payload;
-      //if(network_should_drop())
-        //continue; // drop the packet and continue reading
+      if(network_should_drop())
+        continue; // drop the packet and continue reading
       return pkt;
     }
-  //}
+  }
 }

@@ -440,8 +440,6 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
   printf("In recvfn \n");
   printf("Incoming packet conn id %d \n", *conn_id);
 
-  while(true)
-  {
   std::map<unsigned int, Connection*>::iterator it;
   it = sLspServer->clients.find(*conn_id);
   static LSPMessage1 pkt;
@@ -476,7 +474,6 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
     printf(" Client not added to map\n");
     printf("In recvfn end\n");
     return &pkt;
-  }
   }
 }
 
