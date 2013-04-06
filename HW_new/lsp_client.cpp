@@ -380,8 +380,8 @@ void cleanup_connection(Connection *s){
 LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 {
   timeval t = network_get_timeval(timeout);
-  while(true)
-  {
+  //while(true)
+  //{
     int result = select(NULL, NULL, NULL, NULL, &t);
     if(result == -1)
     {
@@ -413,9 +413,9 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
       }
 
       pkt->data = msg->payload;
-      if(network_should_drop())
-        continue; // drop the packet and continue reading
+      //if(network_should_drop())
+        //continue; // drop the packet and continue reading
       return pkt;
     }
-  }
+  //}
 }
