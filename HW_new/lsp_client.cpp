@@ -383,20 +383,21 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
         exit(1);
       }
 
-      LSPMessage pkt;
-      pkt.conn_id = msg->connid;
-      pkt.seq_num = msg->seqnum;
 
-      if(pkt.seq_num == -1)
+      LSPMessage* pkt = new LSPMessage;
+      pkt->conn_id = msg->connid;
+      pkt->seq_num = msg->seqnum;
+      printf(" message conn id %d seq_num %d \n",msg->connid,msg->seqnum);
+      if(pkt->seq_num == -1)
       {
         printf("Client polled. Message is empty.\n");
         return NULL;
       }
 
-      pkt.data = msg->payload;
+      pkt->data = msg->payload;
       if(network_should_drop())
         continue; // drop the packet and continue reading
-      return &pkt;
+      return pkt;
     }
   }
 }
