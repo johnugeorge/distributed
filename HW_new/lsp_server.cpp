@@ -69,24 +69,24 @@ lsp_server* lsp_server_create(int port){
         lsp_server_close(server,0);
         return NULL;
     }
-   /* if((res = pthread_create(&(server->epochThread), NULL, ServerEpochThread, (void*)server)) != 0){
+    if((res = pthread_create(&(server->epochThread), NULL, ServerEpochThread, (void*)server)) != 0){
         printf("Error: Failed to start the epoch thread: %d\n",res);
         lsp_server_close(server,0);
         return NULL;
     }
-       */ 
+       
     // create the read/write threads listening on a certain port
     if((res = pthread_create(&(server->readThread), NULL, ServerReadThread, (void*)server)) != 0){
         printf("Error: Failed to start the epoch thread: %d\n",res);
         lsp_server_close(server,0);
         return NULL;
     } 
-    /*if((res = pthread_create(&(server->writeThread), NULL, ServerWriteThread, (void*)server)) != 0){
+    if((res = pthread_create(&(server->writeThread), NULL, ServerWriteThread, (void*)server)) != 0){
         printf("Error: Failed to start the write thread: %d\n",res);
         lsp_server_close(server,0);
         return NULL;
     }
-    */
+    
     return server;
 }
 
@@ -275,6 +275,7 @@ void* ServerReadThread(void *params){
         if(msg) {
             // we got a message, let's parse it
             printf(" we got a message, let's parse it \n");
+	    msg->print();
             pthread_mutex_lock(&(server->mutex));
 	    std::cout<<" host "<<addr<<"  "<<server->connections.count(addr)<<"\n";
             if(msg->connid() == 0 && msg->seqnum() == 0 && msg->payload().length() == 0){
@@ -444,26 +445,34 @@ LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
   static LSPMessage1 pkt;
  if(it != sLspServer->clients.end())
   {
+
     Connection* conn = it->second;
     LSPMessage* msg;
     if(conn->rpcOutbox.empty())
     {
       pkt.connid=*conn_id;
       pkt.seqnum = -1;
-      pkt.payload = "a";
+      pkt.payload = "\0";
+      printf(" Outbox Empty\n");
+      printf("In recvfn end \n");
       return &pkt;
     }
     conn->rpcOutbox.getq(msg);
     pkt.seqnum = msg->seq_num;
     pkt.connid = msg->conn_id;
-    //pkt.payload = (char*) (msg->data.c_str());
-    pkt.payload = "a";
+    pkt.payload = (char*) (msg->data.c_str());
+    //pkt.payload = "a";
+    printf(" From Outbox Conn id: %d seq_no %d\n",msg->conn_id,msg->seq_num);
+    printf("In recvfn end \n");
     return &pkt;
   }
   else
   {
     pkt.connid = *conn_id;
     pkt.seqnum = -1;
+    pkt.payload = "\0";
+    printf(" Client not added to map\n");
+    printf("In recvfn end\n");
     return &pkt;
   }
 }

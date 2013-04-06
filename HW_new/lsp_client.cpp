@@ -63,13 +63,13 @@ lsp_client* lsp_client_create(const char* dest, int port){
     client->connection->epochsSinceLastMessage = 0;
     client->clnt_handle=clnt; 
     // kickoff new epoch timer
- /*   int res;
+    int res;
     if((res = pthread_create(&(client->epochThread), NULL, ClientEpochThread, (void*)client)) != 0){
         printf("Error: Failed to start the epoch thread: %d\n",res);
         lsp_client_close(client);
         return NULL;
     }
-*/
+
 /*    if(network_send_connection_request(client->connection) && 
        network_wait_for_connection(client->connection, epoch_delay * num_epochs))
        */
@@ -90,13 +90,13 @@ lsp_client* lsp_client_create(const char* dest, int port){
             printf("Error: Failed to start the read thread: %d\n",res);
             lsp_client_close(client);
             return NULL;
-        }/*
+        }
         if((res = pthread_create(&(client->writeThread), NULL, ClientWriteThread, (void*)client)) != 0){
             printf("Error: Failed to start the write thread: %d\n",res);
             lsp_client_close(client);
             return NULL;
         }
-    */    
+        
         pthread_mutex_unlock(&(client->mutex));
         return client;
     }/* else {
@@ -121,7 +121,7 @@ void client_send_message(lsp_client* client,LSPMessage* msg)
 		exit(1);
 	}
 	printf(" client_send_message Conn Id %d end\n",*result);
-
+	client->connection->id=*result;
 
 }
 
@@ -257,8 +257,8 @@ void* ClientReadThread(void *params){
         sockaddr_in addr;
         //LSPMessage *msg = network_read_message(client->connection, 0.5,&addr);
         LSPMessage* msg = rpc_read_message(client, 0.5);
-
         if(msg) {
+	    msg->print();
             if(msg->connid() == client->connection->id){
                 pthread_mutex_lock(&(client->mutex));
                 

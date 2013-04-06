@@ -21,7 +21,7 @@
 #include "lsp_rpc.h"
 #include <string>
 #include "Queue.h"
-
+#include <iostream>
 //#include "lspmessage.pb.h"
 
 typedef struct {
@@ -60,6 +60,14 @@ typedef struct {
 		std::string temp(str,len );
 		data=temp;
 		length=len;
+	}
+	inline void print()
+	{
+		std::cout<<"----- LSP Message START-----\n";
+		std::cout<<" Conn ID "<<conn_id<<"\n";
+		std::cout<<" Seq No "<<seq_num<<"\n";
+		//std::cout<<" Payload  "<<data<<"\n";
+		std::cout<<"----- LSP Message END-----\n";
 	}
 
 }LSPMessage;
