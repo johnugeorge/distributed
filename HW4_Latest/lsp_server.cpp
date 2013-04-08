@@ -463,49 +463,6 @@ int * sendfn_1_svc(LSPMessage1 * msg, struct svc_req *req)
 	return &ret;
 }
 
-LSPMessage1 * recvfn_1_svc(int *conn_id, struct svc_req *req)
-{
-  if(DEBUG) printf("In recvfn \n");
-  if(DEBUG) printf("Incoming packet conn id %d \n", *conn_id);
-
-  std::map<unsigned int, Connection*>::iterator it;
-  it = sLspServer->clients.find(*conn_id);
-  static LSPMessage1 pkt;
- if(it != sLspServer->clients.end())
-  {
-
-    Connection* conn = it->second;
-    LSPMessage* msg;
-    if(conn->rpcOutbox.empty())
-    {
-      pkt.connid=*conn_id;
-      pkt.seqnum = -1;
-      pkt.payload = "\0";
-      if(DEBUG) printf(" Outbox Empty\n");
-      if(DEBUG) printf("In recvfn end \n");
-      return &pkt;
-    }
-    conn->rpcOutbox.getq(msg);
-    pkt.seqnum = msg->seq_num;
-    pkt.connid = msg->conn_id;
-    pkt.payload = (char*) (msg->data.c_str());
-    //pkt.payload = "a";
-    if(DEBUG) printf(" From Outbox Conn id: %d seq_no %d\n",msg->conn_id,msg->seq_num);
-    if(DEBUG) printf("In recvfn end \n");
-    return &pkt;
-  }
-  else
-  {
-    pkt.connid = *conn_id;
-    pkt.seqnum = -1;
-    pkt.payload = "\0";
-    if(DEBUG) printf(" Client not added to map\n");
-    if(DEBUG) printf("In recvfn end\n");
-    return &pkt;
-  }
-}
-
-
 LSPMessage* rpc_read_message(Connection *conn, double timeout,unsigned long& addr,unsigned short& port)
 {
 	timeval t = network_get_timeval(timeout);
@@ -535,18 +492,4 @@ LSPMessage* rpc_read_message(Connection *conn, double timeout,unsigned long& add
 		}
 	}
 }
-/*
-void server_acknowledge(lsp_client* client)
-{
-	   Connection* conn = client->connection;
-	       LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
-
-	          send_message(client, msg);
-}
-
-void send_message(lsp_client* client, LSPMessage* msg)
-{
-	  server_send_message(client, msg);
-}
-*/
 

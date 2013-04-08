@@ -11,7 +11,7 @@ struct LSPMessage1 {
 program LSP_PROGRAM {
         version LSP_VERS {
                 int sendfn(LSPMessage1) = 1;
-                LSPMessage1 recvfn(int)=2;
+                /*LSPMessage1 recvfn(int)=2;*/
 		void callbackfn(int)  = 3;
 
         } = 1;

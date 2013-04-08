@@ -395,7 +395,6 @@ void* ClientReadThread(void *params){
         //LSPMessage *msg = network_read_message(client->connection, 0.5,&addr);
         LSPMessage* msg = rpc_read_message(client, 0.5);
         if(msg) {
-             printf("Start Client received an ACK for msg %d\n",msg->seqnum());
 	    if(DEBUG)msg->print();
             if(msg->connid() == client->connection->id){
                 pthread_mutex_lock(&(client->mutex));
@@ -405,7 +404,7 @@ void* ClientReadThread(void *params){
                 
                 if(msg->payload().length() == 0){
                     // we received an ACK
-                    printf("Client received an ACK for msg %d\n",msg->seqnum());
+                    if(DEBUG)printf("Client received an ACK for msg %d\n",msg->seqnum());
                     if(msg->seqnum() == (client->connection->lastReceivedAck + 1)){
                         // this sequence number is next in line, even if it overflows
                         client->connection->lastReceivedAck = msg->seqnum();
@@ -559,7 +558,7 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 		    if(!sClient->rpcInbox.empty())
 		    {
 			    sClient->rpcInbox.getq(pkt);
-			    printf(" RPC_READ %d\n",pkt->seq_num);
+			    if(DEBUG) printf(" RPC_READ %d\n",pkt->seq_num);
 		    }
 		    if(network_should_drop())
 			    continue; // drop the packet and continue reading
@@ -567,43 +566,6 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 	    }
 
 
-    /*    if(result == -1)
-    {
-      printf("Error receiving message: %s\n", strerror(errno));
-      return NULL;
-    }
-    else if(result == 0)
-    {
-      // a packet was received, let's parse it
-      Connection* conn = client->connection;
-      int i = conn->id;
-      pthread_mutex_lock(&(client->rpcMutex));
-
-      LSPMessage1* msg = recvfn_1(&i, client->clnt_handle);
-      if(msg == NULL)
-      {
-        clnt_perror(client->clnt_handle, "recvfn call failed:");
-        printf("recvfn call failed\n");
-        exit(1);
-      }
-      pthread_mutex_unlock(&(client->rpcMutex));
-
-
-      LSPMessage* pkt = new LSPMessage;
-      pkt->conn_id = msg->connid;
-      pkt->seq_num = msg->seqnum;
-      printf(" message conn id %d seq_num %d \n",msg->connid,msg->seqnum);
-      if(pkt->seq_num == -1)
-      {
-        printf("Client polled. Message is empty.\n");
-        return NULL;
-      }
-
-      pkt->data = msg->payload;
-      if(network_should_drop())
-        continue; // drop the packet and continue reading
-      return pkt;
-    }*/
   }
 }
 
