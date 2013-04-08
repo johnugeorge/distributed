@@ -47,15 +47,20 @@ bool network_send_message(Connection *conn, LSPMessage *msg){
   if(DEBUG)printf(" making RPC call %d %d\n",conn->client_id, msg->seq_num);
   int conn_id=msg->conn_id;
   int seq_no=msg->seq_num;
-  char *host= new char[INET6_ADDRSTRLEN];
   std::string payload=msg->data;
   LSPMessage1 pkt;
   pkt.connid=conn_id;
   pkt.seqnum=seq_no;
   pkt.payload=(char*)payload.c_str();
   int result;
+  int addr= conn->in_addr_int;
+  struct sockaddr_in new_addr;
+  new_addr.sin_addr.s_addr=addr;
+  char host[128];
+  sprintf(host,"%s",inet_ntoa(new_addr.sin_addr));
+  if(DEBUG) printf(" Address %s \n",inet_ntoa(new_addr.sin_addr));
 
-  int ans = callrpc("127.0.0.1", conn->client_id, 1,
+  int ans = callrpc(host, conn->client_id, 1,
 		  (__const u_long) 1, (__const xdrproc_t) xdr_LSPMessage1, (char*)&pkt, (__const xdrproc_t) xdr_int, (char*)&result);
 
   if(DEBUG)printf(" RPC called\n");

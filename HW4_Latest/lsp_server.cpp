@@ -319,16 +319,15 @@ void* ServerReadThread(void *params){
                     conn->lastReceivedSeq = 0;
                     conn->epochsSinceLastMessage = 0;
                     conn->fd = server->connection->fd; // send through the server's socket
-                    conn->addr = new sockaddr_in();
+                    //conn->addr = new sockaddr_in();
 		    conn->client_id=client_id;
-                    memcpy(conn->addr,&addr,sizeof(addr));
+		    conn->in_addr_int=addr;
+                    //memcpy(conn->addr,&addr,sizeof(addr));
                     
-                    printf("Connection ack from %d\n",host);
+                    if(DEBUG)printf("Connection ack from %d\n",host);
                     // send an ack for the connection request
                     network_acknowledge(conn);
-                    //rpc_ack(conn);
                     
-                    printf("Connection ack sent from %d\n",host);
                     // insert this connection into the list of connections
                     server->clients.insert(std::pair<int,Connection*>(conn->id,conn));
                 }

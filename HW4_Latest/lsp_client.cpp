@@ -171,6 +171,7 @@ lsp_client* lsp_client_create(const char* dest, int port){
 	}
 	else {
 		//	 connection failed or timeout after K * delta seconds
+		pthread_mutex_unlock(&(client->mutex));
 		lsp_client_close(client);
 		return NULL;
 	}
@@ -203,22 +204,15 @@ void client_send_message(lsp_client* client,LSPMessage* msg)
 	pkt.seqnum=msg->seq_num;
 	pkt.payload=(char*)(msg->data).c_str();
         pthread_mutex_lock(&(client->rpcMutex));
-	/*int* result = sendfn_1(&pkt,client->clnt_handle);
-	 test if the RPC succeeded */
-	/*if (result == NULL) {
-		clnt_perror(client->clnt_handle, "sendfn call failed:");
-		printf(" call failed\n");
-		exit(1);
-	}*/
 	int result;
 	int ans = callrpc(client->connection->host, LSP_PROGRAM, LSP_VERS,
 			(__const u_long) 1, (__const xdrproc_t) xdr_LSPMessage1, (char*)&pkt, (__const xdrproc_t) xdr_int, (char*)&result);
 
-	if ((enum clnt_stat) ans != RPC_SUCCESS) {
+	/*if ((enum clnt_stat) ans != RPC_SUCCESS) {
 		fprintf(stderr, "call callrpc: Send Msg ");
 		clnt_perrno((enum clnt_stat)ans);
 		fprintf(stderr, "\n");
-	}
+	}*/
 
 	if(DEBUG)printf(" client_send_message Conn Id %d end\n",result);
         pthread_mutex_unlock(&(client->rpcMutex));
@@ -558,10 +552,11 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 		    if(!sClient->rpcInbox.empty())
 		    {
 			    sClient->rpcInbox.getq(pkt);
-			    if(DEBUG) printf(" RPC_READ %d\n",pkt->seq_num);
 		    }
 		    if(network_should_drop())
+		    {
 			    continue; // drop the packet and continue reading
+		    }
 		    return pkt;
 	    }
 
@@ -572,8 +567,8 @@ LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 bool rpc_wait_for_connection(lsp_client *client){
 	Connection* conn=client->connection;
 	int retry=1;
-	double timeout=epoch_delay;
-	while(retry <= num_epochs)
+	double timeout=1.0;
+	while(retry <= num_epochs*epoch_delay)
 	{
 		LSPMessage *msg = rpc_read_message(client, timeout);
 		if (msg && msg->seqnum() == 0){

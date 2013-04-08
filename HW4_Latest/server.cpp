@@ -71,7 +71,7 @@ int main(int argc, char* argv[]){
         return -1;
     }
 
-    lsp_set_drop_rate(0.2); // 20% of packets dropped
+    //lsp_set_drop_rate(0.2); // 20% of packets dropped
     //lsp_set_epoch_lth(0.1); // 100 ms per epoch = fast resends on failure
     //lsp_set_epoch_cnt(20); // 20 epochs (2 seconds) with no response
     

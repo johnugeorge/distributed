@@ -92,6 +92,7 @@ typedef struct {
     unsigned int            epochsSinceLastMessage;
     std::queue<LSPMessage*> outbox;
     Queue<LSPMessage*> rpcOutbox;
+    unsigned long	     in_addr_int;
 } Connection;
 
 #endif
