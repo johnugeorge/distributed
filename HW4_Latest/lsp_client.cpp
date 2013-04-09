@@ -576,7 +576,7 @@ bool rpc_wait_for_connection(lsp_client *client){
 			printf("[%d] Connected\n",conn->id); 
 			return true;
 		} else {
-			printf("Timed out waiting for connection from server after %.2f seconds\n",timeout);
+			printf("Connecting to server \n");
 			retry++;
 			//return false;
 		}
