@@ -279,7 +279,7 @@ void* ServerReadThread(void *params){
         
 	unsigned long  addr;
 	unsigned short  port;
-        LSPMessage *msg = rpc_read_message(server->connection, 0.5 ,addr,port);
+        LSPMessage *msg = rpc_read_message(server->connection, 0.1 ,addr,port);
 	host=addr+port;
         if(msg) {
             // we got a message, let's parse it
