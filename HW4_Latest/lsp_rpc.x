@@ -1,4 +1,3 @@
-/* rpc.x - demonstration of NFS via rpc */
 
 
 struct LSPMessage1 {
