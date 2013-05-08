@@ -1602,7 +1602,7 @@ public class FSNamesystem implements FSConstants, FSNamesystemMBean,
                                          ) throws IOException {
     List<DatanodeDescriptor> loc =new ArrayList<DatanodeDescriptor>();
     for(DatanodeInfo n:choosenNodes)
-	    loc.add(host2DataNodeMap.getDatanodeByHost(clientMachine));
+      loc.add(new DatanodeDescriptor((DatanodeID)n));
 
     long fileLength, blockSize;
     int replication;

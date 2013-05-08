@@ -340,7 +340,8 @@ class DataXceiver implements Runnable, FSConstants {
 
 		    }
 		    out.flush();	   
-
+        
+		    System.out.println("Target length: "+targets.length);
 		    mirrorInStatus  = mirrorIn.readShort();
 
 		    if (mirrorInStatus != DataTransferProtocol.OP_STATUS_SUCCESS) {

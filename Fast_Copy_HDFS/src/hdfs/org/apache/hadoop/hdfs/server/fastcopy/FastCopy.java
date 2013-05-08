@@ -193,6 +193,7 @@ public class FastCopy implements Tool {
 			DatanodeInfo[] excluded = excludedNodes.toArray(new DatanodeInfo[0]);
 
 			LocatedBlock destBlock= nameNode.addBlockLocations(dest, dfsClient.getClientName() , excluded,sourceBlock.getLocations()); 	  
+			//LocatedBlock destBlock= nameNode.addBlock(dest, dfsClient.getClientName() , excluded); 	  
  			DatanodeInfo[] dnInfo = destBlock.getLocations();
 			//for(DatanodeInfo dnInfo : destBlock.getLocations())
 			{
