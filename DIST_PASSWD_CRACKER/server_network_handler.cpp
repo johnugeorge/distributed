@@ -2,8 +2,6 @@
 #include "lsp_server.h"
 #include"network_handler.h"
 
-extern void lsp_program_1(struct svc_req *rqstp, register SVCXPRT *transp);
-
 void *get_in_addr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
@@ -60,71 +58,37 @@ socket_cmp_port(const struct sockaddr *sa1, const struct sockaddr *sa2)
 	}
 	return (-1);
 }
-
 void s_network_handler(void* p)
 {
   thread_info_map[pthread_self()]=" SERVER NETWORK HANDLER THREAD:";
   PRINT(LOG_DEBUG," s_network_handler \n");
   lsp_server* server=(lsp_server*)p;
-  server->transp = svcudp_create(RPC_ANYSOCK);
-        if (server->transp == NULL) {
-	 fprintf (stderr, "%s", "cannot create udp service.");
-	  exit(1);
-	}
-	
-  if (!svc_register(server->transp, LSP_PROGRAM, LSP_VERS, lsp_program_1, IPPROTO_UDP)) {
-	  fprintf (stderr, "%s", "unable to register (TEST_PROG, TEST_VERS, udp).");
-	  exit(1);
-  }
-
-  svc_run();
-}
-
-int * sendfn_1_svc(packet *pkt_rcv, struct svc_req *)
-{
-  int ret=1;
-  //struct sockaddr_storage their_addr;
+  struct sockaddr_storage their_addr;
   uint8_t raw_buf[MAX_PAYLOAD_SIZE],decoded_buf[MAX_PAYLOAD_SIZE];
-  //socklen_t addr_len;
+  socklen_t addr_len;
   int numbytes;
-  //char s[INET6_ADDRSTRLEN];
-  if(sLspServer == NULL)
-	  PRINT(LOG_CRIT,"sLspServer is Null\n");
-  lsp_server* server=sLspServer;
+  char s[INET6_ADDRSTRLEN];
   pckt_fmt pkt;
   int dup_req=0;
   int pkt_save=0;
- // while(1)
+  while(1)
   {
 	  pkt_save=0;
-	  //addr_len = sizeof their_addr;
+	  addr_len = sizeof their_addr;
 	  PRINT(LOG_DEBUG,"Waitng in server recv\n");
-	  //if ((numbytes = recvfrom(server->socket_fd, raw_buf, sizeof(raw_buf), 0,
-	//				  (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-	//	  perror("recvfrom");
-	//	  exit(1);
-	  //}
-
-	  //PRINT(LOG_DEBUG,"listener: got packet from "<<
-	//		  inet_ntop(their_addr.ss_family,
-	//			  get_in_addr((struct sockaddr *)&their_addr),
-	//			  s, sizeof s)<<" numbytes "<<numbytes<<"\n");
-	  printf("incoming string: \"%s\"\n", pkt_rcv->data);
-	  printf("incoming conn id: %d\n", pkt_rcv->conn_id);
-	  printf("incoming seq no: %d\n", pkt_rcv->seq_no);
-	  printf("incoming seq no: %d\n", strlen(pkt_rcv->data));
-         
-	  pkt.conn_id=pkt_rcv->conn_id;
-	  pkt.seq_no=pkt_rcv->seq_no; 
-  	  //if(strlen(pkt_rcv->data) == 0)
-	//	  pkt.data=pkt_rcv->data;
-	  //else
-	  {
-		  pkt.data=(char*)malloc(strlen(pkt_rcv->data)+1);
-	  	  memcpy(pkt.data,pkt_rcv->data,strlen(pkt.data)+ 1);	  
+	  if ((numbytes = recvfrom(server->socket_fd, raw_buf, sizeof(raw_buf), 0,
+					  (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+		  perror("recvfrom");
+		  exit(1);
 	  }
-	  //int len=message_decode(numbytes,raw_buf,pkt);
-	  int len=strlen(pkt.data);
+
+	  PRINT(LOG_DEBUG,"listener: got packet from "<<
+			  inet_ntop(their_addr.ss_family,
+				  get_in_addr((struct sockaddr *)&their_addr),
+				  s, sizeof s)<<" numbytes "<<numbytes<<"\n");
+	  
+  	  pkt.data=(char*)malloc(numbytes);
+	  int len=message_decode(numbytes,raw_buf,pkt);
 	  PRINT_PACKET(pkt,"RECEIVE")
 	  //PRINT(LOG_DEBUG,"Num bytes "<<numbytes<<" len "<<len<<" pkt data size "<<strlen(pkt.data)<<"\n";
 	  conn_arg conn_argv;
@@ -136,8 +100,7 @@ int * sendfn_1_svc(packet *pkt_rcv, struct svc_req *)
 	  {
 		  PRINT(LOG_DEBUG,"PACKET DROPPED_______________ rand value"<<rand_value<<"\n");
 		  free(pkt.data);
-		  return &ret;
-		  //continue;
+		  continue;
 	  }
 
 	  if(strlen(pkt.data)==0)
@@ -148,21 +111,21 @@ int * sendfn_1_svc(packet *pkt_rcv, struct svc_req *)
 			  client_info_map::iterator it= server->client_conn_info.begin();
 			  for(;it !=server->client_conn_info.end();it++)
 			  {
-				  /*if(socket_cmp_addr((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 0)
+				  if(socket_cmp_addr((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 0)
 				  {
 					  if(socket_cmp_port((struct sockaddr *)&their_addr,(struct sockaddr *)&(it->second->addr)) == 1)
 					  {
 						  dup_req=1;
 						  PRINT(LOG_DEBUG," Duplicate Client Connection Request \n");
 					  }
-				  }*/
+				  }
 			  }
 			  if(!dup_req)
 			  {
 				  PRINT(LOG_DEBUG," New connection Request \n");
 				  client_info* new_client  =new client_info;
 				  new_client->conn_id=server->next_free_conn_id++;
-				 // new_client->addr=their_addr;
+				  new_client->addr=their_addr;
 				  new_client->conn_state=CONN_REQ_ACK_SENT;
 				  server->client_conn_info[new_client->conn_id]  =  new_client;
 				  server_send(server,CONN_ACK,new_client->conn_id);
@@ -209,6 +172,7 @@ int * sendfn_1_svc(packet *pkt_rcv, struct svc_req *)
 			  PRINT(LOG_CRIT,"Unknown Packet\n");
 			  //exit(1);
 		  }
+
 		  
 	  
 	  }
@@ -238,7 +202,7 @@ int * sendfn_1_svc(packet *pkt_rcv, struct svc_req *)
 					  //client_conn->inbox_queue.push(pkt);
 					  inbox_struct inbox;
 					  inbox.pkt=pkt;
-					  //inbox.payload_size=len;
+					  inbox.payload_size=len;
 					  server->inbox_queue.putq(inbox);
 					  PRINT(LOG_DEBUG," Adding to inbox.Size is "<<server->inbox_queue.size());
 					  server_send(server,DATA_ACK,client_conn->conn_id,pkt.seq_no);

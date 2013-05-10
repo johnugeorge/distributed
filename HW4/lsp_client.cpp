@@ -1,293 +1,588 @@
 #include "lsp_client.h"
-pthread_t client_epoch;
-
-pthread_t client_network_handler;
-
+#include <rpc/pmap_clnt.h>
+#include<rpc/rpc.h>
+double epoch_delay = _EPOCH_LTH; // number of seconds between epochs
+unsigned int num_epochs = _EPOCH_CNT; // number of epochs that are allowed to pass before a connection is terminated
 
 /*
  *
  *
- * CLIENT RELATED FUNCTIONS
+ *				LSP RELATED FUNCTIONS
+ *
+ *
+ */  
+lsp_client* sClient;
+
+// Set length of epoch (in seconds)
+void lsp_set_epoch_lth(double lth){
+    if(lth > 0)
+        epoch_delay = lth;
+}
+
+// Set number of epochs before timing out
+void lsp_set_epoch_cnt(int cnt){
+    if(cnt > 0)
+        num_epochs = cnt;
+}
+
+// Set fraction of packets that get dropped along each connection
+void lsp_set_drop_rate(double rate){
+    network_set_drop_rate(rate);
+}
+
+int * recvfn1(LSPMessage1 * msg)
+{
+	if(DEBUG) printf(" Incoming Packet size of Payload %d \n", strlen(msg->payload));
+	static int ret= 0;
+	int conn_id=msg->connid;
+	int seq_no=msg->seqnum;
+	std::string payload=msg->payload;
+	LSPMessage *pkt = new LSPMessage;
+	pkt->conn_id=conn_id;
+	pkt->seq_num=seq_no;
+	pkt->data=payload;
+	sClient->rpcInbox.putq(pkt);
+	return &ret;
+
+}
+
+
+void  callback(struct svc_req *rqstp, SVCXPRT * transp)
+{
+	union {
+		LSPMessage1 test_func_1_arg;
+	} argument;
+
+
+	switch (rqstp->rq_proc) {
+		case 0:
+			if (!svc_sendreply(transp, (xdrproc_t) xdr_void, 0)) {
+				fprintf(stderr, "err: exampleprog\n");
+				//return (1);
+				return ;
+			}
+			//return (0);
+			return ;
+		case 1:
+
+			memset ((char *)&argument, 0, sizeof (argument));
+
+			if (!svc_getargs(transp,  (xdrproc_t) xdr_LSPMessage1, (caddr_t) &argument)) {
+				svcerr_decode(transp);
+				//return (1);
+				return ;
+			}
+			//printf(" Successful decoding %s %d\n " ,test_func_1_arg.name, argument.val);
+			int* result =recvfn1((LSPMessage1 *)&argument);
+			if(DEBUG) fprintf(stderr, "client got callback\n");
+			if (!svc_sendreply(transp, (xdrproc_t) (xdrproc_t) xdr_int,(caddr_t) result)) {
+				fprintf(stderr, "err: exampleprog");
+				//return (1);
+				return ;
+			}
+	}
+}
+	//																						}
+/*
+ *
+ *
+ *				CLIENT RELATED FUNCTIONS
  *
  *
  */  
 
+lsp_client* lsp_client_create(const char* dest, int port){
+    lsp_client *client = new lsp_client();
+    sClient=client;
+    pthread_mutex_init(&(client->mutex),NULL);
+    pthread_mutex_init(&(client->rpcMutex),NULL);
+    client->connection = network_make_connection(dest,port);
+    
+    if(!client->connection){
+        // connection could not be made
+        lsp_client_close(client);
+        return NULL;
+    }
+   
+    CLIENT *clnt;
+    char **result; /* return value */
 
+    clnt = clnt_create(dest, LSP_PROGRAM, LSP_VERS, "udp");
+    if (clnt == NULL) {
+	    clnt_pcreateerror(dest);
+	    exit(1);
+    }
 
-/* lsp_client_create
- * Client waits for configured epoch lengths to receive 
- * connection response from server. Return false if client doesn’t get any 
- * reply otherwise return a pointer to a struct of type lsp client.
- */
+    client->callback=0;
+    client->connection->lastSentSeq = 0;
+    client->connection->lastReceivedSeq = 0;
+    client->connection->lastReceivedAck = 0;
+    client->connection->epochsSinceLastMessage = 0;
+    client->clnt_handle=clnt; 
+    // kickoff new epoch timer
+    int res;
+    if((res = pthread_create(&(client->epochThread), NULL, ClientEpochThread, (void*)client)) != 0){
+        printf("Error: Failed to start the epoch thread: %d\n",res);
+        lsp_client_close(client);
+        return NULL;
+    }
 
-lsp_client* lsp_client_create(const char* src, int port)
-{
-/*  struct addrinfo hints, *servinfo;
-  thread_info_map[pthread_self()]=" MAIN CLIENT THREAD            :";
-  int sockfd, yes=1;
+/*    if(network_send_connection_request(client->connection) && 
+       network_wait_for_connection(client->connection, epoch_delay * num_epochs))
+       */
+       {
 
-	// first, load up address structs with getaddrinfo():
+	
+        pthread_mutex_lock(&(client->mutex));
+        client->connection->host = dest;
+	
+       	if((res = pthread_create(&(client->RPCThread), NULL, ClientRPCThread, (void*)client)) != 0){
+            printf("Error: Failed to start the write thread: %d\n",res);
+            lsp_client_close(client);
+            return NULL;
+        } 
 
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+      	while(client->callback==0); 
 
-	char buf[5];
-	sprintf(buf,"%d",port);
-	const char* udpPort = (char*) &buf;
-	getaddrinfo(src, udpPort, &hints, &servinfo);
-
-	if ((sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol)) == -1){
-		perror("server: socket");
-		sockfd = 0;
-	}
-
-*/
-  //start the client side epoch
- void *c_epoch_timer(void*);
- void *c_network_handler(void*);
- 
-	CLIENT *clnt;
-	char *host;
-	char **result; /* return value */
-
-//	host = argv[1];
-
-	clnt = clnt_create(src, LSP_PROGRAM, LSP_VERS, "udp");
-	if (clnt == NULL) {
-		clnt_pcreateerror(host);
-		exit(1);
-	}
-
-  lsp_client* new_client = new lsp_client;
- // new_client->socket_fd=sockfd;
- // new_client->serv_info=servinfo;
-  new_client->clnt=clnt;
-  new_client->conn_state = CONN_REQ_SENT;
-  client_send(new_client,CONN_REQ);
-  pthread_create(&client_network_handler, NULL, c_network_handler, (void*) new_client);
-  pthread_create(&client_epoch, NULL, c_epoch_timer, (void*) new_client);
-
-
-  struct timespec  to;
-  struct timeval    tp;
-  pthread_mutex_lock(&global_mutex);
-  int rc =  gettimeofday(&tp, NULL);
-  to.tv_sec = tp.tv_sec + lsp_get_epoch_lth()*lsp_get_epoch_cnt();
-  to.tv_nsec = tp.tv_usec * 1000;
-  while (new_client->conn_state == CONN_REQ_SENT) {
-	  int err = pthread_cond_timedwait(&global_created, &global_mutex, &to);
-	  if (err == ETIMEDOUT) {
-		  PRINT(LOG_CRIT," Server not responded to Conn Request");
-		  //close(sockfd);
-		  return NULL;
-		  // break;
-	  }
-  }
-  pthread_mutex_unlock(&global_mutex);
-cout<<" 1\n";
-
-
-  return new_client;
-}
-/*lsp_client_read 
- * Pop message from the queue 
- * if payload_size ==0 -> disconnection message
- *                        send -1 to application
- * else
- *     populate connection id and payload 
- *     send payload_size as return parameter to application*/
-
-int lsp_client_read(lsp_client* a_client, uint8_t* pld)
-{
- if(a_client == NULL)
- {
-	 PRINT(LOG_INFO," Client Ptr is NULL.exiting ");
-         exit(1);
- }
- else
- {
-	 if(!(a_client->inbox_queue.empty()))
-	 {
-		 PRINT(LOG_DEBUG," Inbox_size "<<a_client->inbox_queue.size());
-		 inbox_struct inbox;
-		 a_client->inbox_queue.getq(inbox);
-		 int len=inbox.payload_size;
-		 if(len!=0)
-		 {
-		 char* ptr=inbox.pkt.data;
-		 //a_client->inbox_queue.pop();
-		 memcpy(pld,ptr,strlen(ptr)+1);
-		 free(ptr);
-		 return len;
-		 }
-		 else
-		 {
-			 pld=NULL;
-			 return -1;
-		 }
-         }
-	 return 0;
- }
-}
-
-/*lsp_client_write:  If last message which was sent from the client, is not acknowledged,
- *                     Put into outbox queue of the client
- *                          Else
- *                     Send the packet to the server.
- *
- */
-
-bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth)
-{
-	int len;
-	//uint8_t* buff =message_encode(a_client->conn_,,a_client->seq_no,pld,len);
-        conn_arg conn_argv;
-        conn_argv.conn_id=a_client->conn_id;
-	conn_argv.seq_no=a_client->seq_no;
-	pckt_fmt pkt;
-	pkt.conn_id=a_client->conn_id;
-	pkt.seq_no=a_client->seq_no;
-	pkt.data=(char*)malloc(lth + 1);
-	memcpy(pkt.data,pld,lth + 1);
-	//PRINT_PACKET(pkt,"SEND")
-	PRINT(LOG_DEBUG," Lsp_client_write "<<a_client->conn_id<<" conn state "<< (a_client->conn_state) << " data sent flag "<<a_client->first_data_sent <<" ack status "<<get_ack_status(a_client,conn_argv)<<" prev seq_no :"<<a_client->seq_no<<" length "<<lth<<"\n");
-	if((a_client->conn_state == CONN_REQ_ACK_RCVD) && ((get_ack_status(a_client,conn_argv)==true || a_client->first_data_sent ==false )))
+	if(rpc_wait_for_connection(client))
 	{
-		client_send(a_client,DATA_PCKT,a_client->seq_no,(char*)pld,lth);
-		if(a_client->last_pckt_sent.data != NULL)
-		{
-			free(a_client->last_pckt_sent.data);
-		}
-		a_client->last_pckt_sent.data=(char*)malloc(lth+1);
-		a_client->last_pckt_sent.conn_id=a_client->conn_id;
-		a_client->last_pckt_sent.seq_no=a_client->seq_no;
-		memcpy(a_client->last_pckt_sent.data,pld,lth +1);
-		free(pkt.data);
+		//LSPMessage *msg = network_build_message(0,0,(uint8_t*)"\0",0);
+		//client_send_message(client, msg);
 
+		// connection succeeded, build lsp_client struct        
+		client->connection->port = port;
+		client->connection->status = CONNECTED;
+
+		// kick off ReadThread to catch incoming messages
+		int res;
+		if((res = pthread_create(&(client->readThread), NULL, ClientReadThread, (void*)client)) != 0){
+			printf("Error: Failed to start the read thread: %d\n",res);
+			lsp_client_close(client);
+			return NULL;
+		}
+		if((res = pthread_create(&(client->writeThread), NULL, ClientWriteThread, (void*)client)) != 0){
+			printf("Error: Failed to start the write thread: %d\n",res);
+			lsp_client_close(client);
+			return NULL;
+		}
+
+		pthread_mutex_unlock(&(client->mutex));
+		return client;
+	}
+	else {
+		//	 connection failed or timeout after K * delta seconds
+		pthread_mutex_unlock(&(client->mutex));
+		lsp_client_close(client);
+		return NULL;
+	}
+    }/* else {
+        // conneed or timeout after K * delta seconds
+        lsp_client_close(client);
+        return NULL;
+    }*/
+}
+
+void client_acknowledge(lsp_client* client)
+{
+   Connection* conn = client->connection;
+    LSPMessage *msg = network_build_message(conn->id, conn->lastReceivedSeq, NULL, 0);
+
+   send_message(client, msg);
+}
+
+void send_message(lsp_client* client, LSPMessage* msg)
+{
+  client_send_message(client, msg);
+}
+
+
+void client_send_message(lsp_client* client,LSPMessage* msg)
+{
+	if(DEBUG)printf(" client_send_message start %s \n",client->connection->host);
+	LSPMessage1 pkt;
+        pkt.connid=msg->conn_id;
+	pkt.seqnum=msg->seq_num;
+	pkt.payload=(char*)(msg->data).c_str();
+        pthread_mutex_lock(&(client->rpcMutex));
+	int result;
+	int ans = callrpc(client->connection->host, LSP_PROGRAM, LSP_VERS,
+			(__const u_long) 1, (__const xdrproc_t) xdr_LSPMessage1, (char*)&pkt, (__const xdrproc_t) xdr_int, (char*)&result);
+
+	/*if ((enum clnt_stat) ans != RPC_SUCCESS) {
+		fprintf(stderr, "call callrpc: Send Msg ");
+		clnt_perrno((enum clnt_stat)ans);
+		fprintf(stderr, "\n");
+	}*/
+
+	if(DEBUG)printf(" client_send_message Conn Id %d end\n",result);
+        pthread_mutex_unlock(&(client->rpcMutex));
+	client->connection->id=result;
+
+}
+
+int lsp_client_read(lsp_client* a_client, uint8_t* pld){
+    // block until a message arrives or the client becomes disconnected
+    while(true){
+        pthread_mutex_lock(&(a_client->mutex));
+        Status s = a_client->connection->status;
+        LSPMessage *msg = NULL;
+        if(s == CONNECTED) {
+            // try to pop a message off of the inbox queue
+            if(a_client->inbox.size() > 0){
+                msg = a_client->inbox.front();
+                a_client->inbox.pop();
+            }
         }
-	else
-	{
-		PRINT(LOG_DEBUG," Ack not recieved for earlier seq no "<< a_client->seq_no <<" .Now, outbox size is "<<a_client->outbox_queue.size()<<"\n");
-		//		a_client->seq_no++;
-		//pkt.seq_no=a_client->seq_no;
-		outbox_struct outbox;
-		outbox.pkt=pkt;
-		outbox.payload_size=lth;
-		a_client->outbox_queue.putq(outbox);
-
-	}
-
-}
-/* close client connection*/
-
-bool lsp_client_close(lsp_client* a_client)
-{
-       // pthread_join(client_epoch, NULL);
-        a_client->closed=true;
-	close(a_client->socket_fd);
+        pthread_mutex_unlock(&(a_client->mutex));
+        if(s == DISCONNECTED)
+            break;
+           
+        // we got a message, so return it
+        if(msg){
+            std::string payload = msg->payload();
+            delete msg;
+            memcpy(pld,payload.c_str(),payload.length()+1);
+            return payload.length();
+        }
+        
+        // still connected, but no message has arrived...
+        // sleep for a bit
+        usleep(10000); // 10 ms = 10,0000 microseconds
+    }
+    if(DEBUG) printf("Client was disconnected. Read returning NULL\n");
+    return 0; // NULL, no bytes read (client disconnected)
 }
 
-/* Depending on the packet type,calculate seq no
- * Marshall the packet to create buffer to be sent
- * and call sendto*/
-void client_send(lsp_client* client,pckt_type pkt_type,int seq_no,const char *payload,int length)
-{
-	PRINT(LOG_DEBUG," In client send "<<client->conn_id<<"\n");
-	int numbytes;
-	uint8_t* buff;
-	int len=0;
-	char* s="NIL";
-	pckt_fmt pkt;
-	packet sendPacket;
-	pkt.conn_id=client->conn_id;
-	conn_arg conn_argv;
-	conn_argv.conn_id=client->conn_id;
-	if(pkt_type== DATA_PCKT)
-	{
-                client->first_data_sent =true;
-		client->seq_no++;
-		buff=message_encode(client->conn_id,client->seq_no,payload,len);
-	        conn_argv.seq_no=client->seq_no;
-		sendPacket.seq_no=pkt.seq_no=client->seq_no;
-		sendPacket.data=pkt.data=(char*)payload;
-       		//(client->conn_map)[conn_argv]=false;
-	        set_ack_status(client,conn_argv,false);
-	}
-	else if(pkt_type == CONN_REQ)
-	{
-		buff=message_encode(client->conn_id,0,"\0",len);
-		conn_argv.seq_no=0;
-		sendPacket.seq_no=pkt.seq_no=0;
-		pkt.data=s;
-		sendPacket.data="\0";
-       		//(client->conn_map)[conn_argv]=false;
-	        set_ack_status(client,conn_argv,false);
+bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int lth){
+    // queues up a message to be written by the Write Thread
+    
+    if(pld == NULL || lth == 0)
+        return false; // don't send bad messages
+    
+    pthread_mutex_lock(&(a_client->mutex));
+    a_client->connection->lastSentSeq++;
+    if(DEBUG) printf("Client queueing msg %d for write\n",a_client->connection->lastSentSeq);
+    
+    // build the message
+    LSPMessage *msg = network_build_message(a_client->connection->id,a_client->connection->lastSentSeq,pld,lth);
+    
+    // queue it up
+    a_client->connection->outbox.push(msg);
+    pthread_mutex_unlock(&(a_client->mutex));
+    
+    return true;
+}
 
+bool lsp_client_close(lsp_client* a_client){
+    // returns true if the connected was closed,
+    // false if it was already previously closed
+    
+    if(DEBUG) printf("Shutting down the client\n");
+    
+    pthread_mutex_lock(&(a_client->mutex));
+    bool alreadyClosed = (a_client->connection && a_client->connection->status == DISCONNECTED);
+    if(a_client->connection)
+        a_client->connection->status = DISCONNECTED;
+    pthread_mutex_unlock(&(a_client->mutex));
+    
+    cleanup_client(a_client);
+    return !alreadyClosed;
+}
 
-	}
-	else if(pkt_type == DATA_ACK)
-	{
-	        buff = message_encode(client->conn_id,seq_no,"\0",len);
-		conn_argv.seq_no=seq_no;
-		sendPacket.seq_no=pkt.seq_no=seq_no;
-		pkt.data=s;
-		sendPacket.data="\0";
-	}
-	else if(pkt_type == DATA_PCKT_RESEND)
-	{
-		buff=message_encode(client->conn_id,seq_no,payload,len);
-		conn_argv.seq_no=seq_no;
-		sendPacket.seq_no=pkt.seq_no=seq_no;
-		sendPacket.data=(char*)payload;
-		pkt.data=(char*)payload;
-	}
-	else
-	{
-		PRINT(LOG_INFO,"Error in pkt type");
+/* Internal Methods */
+
+void* ClientRPCThread(void *params){
+	    lsp_client *client = (lsp_client*)params;
+	    
+	int x, ans, s;
+	s = RPC_ANYSOCK;
+	x = gettransient(IPPROTO_UDP, 1, &s);
+	SVCXPRT *xprt;
+	if ((xprt = svcudp_create(s)) == NULL) {
+		fprintf(stderr, "rpc_server: svcudp_create\n");
 		exit(1);
 	}
-	PRINT_PACKET(pkt,"SEND")
-		if(client->closed != true)
-		{
-			sendPacket.conn_id=client->conn_id;
-
-			int* result = sendfn_1(&sendPacket,client->clnt);       /* call the remote function */
-
-			/* test if the RPC succeeded */
-			if (result == NULL) {
-				clnt_perror(client->clnt, "sendfn call failed:");
-				printf(" call failed\n");
-				exit(1);
-			}
-			printf(" call end\n");
-	PRINT(LOG_DEBUG," call start-1 \n");
+	(void)svc_register(xprt, (rpcprog_t) x, 1, callback, 0);
 
 
-			/*if ((numbytes = sendto(client->socket_fd, buff, len, 0,
-							client->serv_info->ai_addr, client->serv_info->ai_addrlen)) == -1) 
-			{
-				perror("client: sendto");
-				exit(1);
-			}*/
+	if(DEBUG)printf(" making RPC call %d\n",x);
+	ans = callrpc(client->connection->host, LSP_PROGRAM, LSP_VERS,
+			(__const u_long) 3, (__const xdrproc_t) xdr_int, (char*)&x, (__const xdrproc_t) xdr_void, 0);
+
+	if(DEBUG)printf(" RPC called\n");
+	if ((enum clnt_stat) ans != RPC_SUCCESS) {
+		fprintf(stderr, "call callrpc: ");
+		clnt_perrno((enum clnt_stat)ans);
+		fprintf(stderr, "\n");
+	}
+	LSPMessage *msg = network_build_message(0,0,(uint8_t*)"\0",0);
+	client_send_message(client, msg);
+	client->callback=1;
+
+
+	svc_run();
+
+}
+
+
+void* ClientEpochThread(void *params){
+    lsp_client *client = (lsp_client*)params;
+    
+    while(true){
+        usleep(epoch_delay * 1000000); // convert seconds to microseconds
+        if(DEBUG) printf("Client epoch handler waking up \n");
+        
+        // epoch is happening; send required messages
+        pthread_mutex_lock(&(client->mutex));
+        if(client->connection->status == DISCONNECTED)
+            break;
+        
+        if(client->connection->status == CONNECT_SENT){
+            // connect sent already, but not yet acknowledged
+            if(DEBUG) printf("Client resending connection request\n");
+            network_send_connection_request(client->connection);
+        } else if(client->connection->status == CONNECTED){
+            // send ACK for most recent message
+            if(DEBUG) printf("Client acknowledging last received message: %d\n",client->connection->lastReceivedSeq);
+            //network_acknowledge(client->connection);
+            client_acknowledge(client);
+            
+            // resend the first message in the outbox, if any
+            if(client->connection->outbox.size() > 0) {
+                if(DEBUG) printf("Client resending msg %d\n",client->connection->outbox.front()->seqnum());
+                //network_send_message(client->connection,client->connection->outbox.front());
+               send_message(client, client->connection->outbox.front()); 
+            }
+        } else {
+            if(DEBUG) printf("Unexpected client status: %d\n",client->connection->status);
+        }
+        
+        if(++(client->connection->epochsSinceLastMessage) >= num_epochs){
+            // oops, we haven't heard from the server in a while;
+            // mark the connection as disconnected
+            if(DEBUG) printf("Too many epochs have passed since we heard from the server... disconnecting\n");
+            client->connection->status = DISCONNECTED;
+            break;
+        }
+        pthread_mutex_unlock(&(client->mutex));
+    }
+    pthread_mutex_unlock(&(client->mutex));
+    if(DEBUG) printf("Epoch Thread exiting\n");
+    return NULL;
+}
+
+void* ClientReadThread(void *params){
+    lsp_client *client = (lsp_client*)params;
+    
+    // continuously poll for new messages and process them;
+    // Exit when the client is disconnected
+    while(true){
+        pthread_mutex_lock(&(client->mutex));
+        Status state = client->connection->status;
+        pthread_mutex_unlock(&(client->mutex));
+        
+        if(state == DISCONNECTED)
+            break;
+        
+        // attempt to read
+        sockaddr_in addr;
+        //LSPMessage *msg = network_read_message(client->connection, 0.5,&addr);
+        LSPMessage* msg = rpc_read_message(client, 0.5);
+        if(msg) {
+	    if(DEBUG)msg->print();
+            if(msg->connid() == client->connection->id){
+                pthread_mutex_lock(&(client->mutex));
+                
+                // reset counter for epochs since we have received a message
+                client->connection->epochsSinceLastMessage = 0;
+                
+                if(msg->payload().length() == 0){
+                    // we received an ACK
+                    if(DEBUG)printf("Client received an ACK for msg %d\n",msg->seqnum());
+                    if(msg->seqnum() == (client->connection->lastReceivedAck + 1)){
+                        // this sequence number is next in line, even if it overflows
+                        client->connection->lastReceivedAck = msg->seqnum();
+                    }
+                    if(client->connection->outbox.size() > 0 && msg->seqnum() == client->connection->outbox.front()->seqnum()) {
+                        delete client->connection->outbox.front();
+                        client->connection->outbox.pop();
+                    }
+                } else {
+                    // data packet
+                    if(DEBUG) printf("Client received msg %d\n",msg->seqnum());
+                    if(msg->seqnum() == (client->connection->lastReceivedSeq + 1)){
+                        // next in the list
+                        client->connection->lastReceivedSeq++;
+                        client->inbox.push(msg);
+                        
+                        // send ack for this message
+                        //network_acknowledge(client->connection);
+                        client_acknowledge(client);
+                    }
+                }
+                
+                pthread_mutex_unlock(&(client->mutex));
+            }
+        }
+    }
+    if(DEBUG) printf("Read Thread exiting\n");
+    return NULL;
+}
+
+// this write thread will ensure that messages can be sent/received faster than only
+// on epoch boundaries. It will continuously poll for messages that are eligible to
+// bet sent for the first time, and then send them out.
+void* ClientWriteThread(void *params){
+    lsp_client *client = (lsp_client*)params;
+    
+    // continuously poll for new messages to send;
+    // Exit when the client is disconnected
+    
+    unsigned int lastSent = 0;
+    
+    while(true){
+        pthread_mutex_lock(&(client->mutex));
+        Status state = client->connection->status;
+        
+        if(state == DISCONNECTED)
+            break;
+            
+        unsigned int nextToSend = client->connection->lastReceivedAck + 1;
+        if(nextToSend > lastSent){
+            // we have received an ack for the last message, and we haven't sent the
+            // next one out yet, so if it exists, let's send it now
+            if(client->connection->outbox.size() > 0) {
+                //network_send_message(client->connection,client->connection->outbox.front());
+                send_message(client, client->connection->outbox.front());
+                lastSent = client->connection->outbox.front()->seqnum();
+            }                
+        }
+        pthread_mutex_unlock(&(client->mutex));
+        usleep(5000); // 5ms
+    }
+    pthread_mutex_unlock(&(client->mutex));
+    return NULL;
+}
+
+void cleanup_client(lsp_client *client){
+    // wait for threads to close
+    void *status;
+    if(client->readThread)
+        pthread_join(client->readThread,&status);
+    if(client->writeThread)
+        pthread_join(client->writeThread,&status);
+    if(client->epochThread)
+        pthread_join(client->epochThread,&status);
+    
+    // cleanup the memory and connection
+    pthread_mutex_destroy(&(client->mutex));
+    pthread_mutex_destroy(&(client->rpcMutex));
+    cleanup_connection(client->connection);
+    delete client;
+}
+
+void cleanup_connection(Connection *s){
+    if(!s)
+        return;
+    
+    // close the file descriptor and free memory
+    //if(s->fd != -1)
+    //    close(s->fd);
+    //delete s->addr;
+    delete s;
+}
+
+int gettransient(int proto, int  vers, int* sockp)
+{
+	static int prognum = 0x40040000;
+	int s, len, socktype;
+	struct sockaddr_in addr;
+	switch(proto) {
+		case IPPROTO_UDP:
+			socktype = SOCK_DGRAM;
+			break;
+		case IPPROTO_TCP:
+			socktype = SOCK_STREAM;
+			break;
+		default:
+			fprintf(stderr, "unknown protocol type\n");
+			return 0;
+	}
+	if (*sockp == RPC_ANYSOCK) {
+		if ((s = socket(AF_INET, socktype, 0)) < 0) {
+			perror("socket");
+			return (0);
 		}
-	printf(" call start-2 \n");
-	PRINT(LOG_DEBUG,"sent "<<numbytes<<" bytes of pkt type "<<pkt_type<<"\n");
-	free(buff);
+		*sockp = s;
+	}
+	else
+		s = *sockp;
+	addr.sin_addr.s_addr = 0;
+	addr.sin_family = AF_INET;
+	addr.sin_port = 0;
+	len = sizeof(addr);
+	/*
+	 * 	 * * may be already bound, so don’t check for error
+	 * 	 	 * */
+	bind(s, (struct sockaddr *) &addr, len);
+	if (getsockname(s, (struct sockaddr *) &addr, (socklen_t *)&len)< 0) {
+		perror("getsockname");
+		return (0);
+	}
+	while (!pmap_set(prognum++, vers, proto,
+				ntohs(addr.sin_port))) continue;
+	return (prognum-1);
 }
 
-/*Get Ack Status for Seq No which was received*/
-bool get_ack_status(lsp_client* client,conn_arg arg)
+LSPMessage* rpc_read_message(lsp_client* client, double timeout)
 {
-	bool value = (client->conn_map)[arg];
-	return value;
-}
-/*Set Ack Status for Seq No which was received*/
-void set_ack_status(lsp_client* client,conn_arg arg, bool value)
-{
+  timeval t = network_get_timeval(timeout);
+  while(true)
+  {
+    int result = select(NULL, NULL, NULL, NULL, &t);
 
-	(client->conn_map)[arg]=value;
+	    if(result == -1){
+		    printf("Error receiving message: %s\n",strerror(errno));
+		    return NULL;
+	    } else if (result == 0) {
+		    if(DEBUG) printf("Receive timed out after %.2f seconds\n",timeout);
+
+
+		    LSPMessage* pkt= NULL;
+		    if(!sClient->rpcInbox.empty())
+		    {
+			    sClient->rpcInbox.getq(pkt);
+		    }
+		    if(network_should_drop())
+		    {
+			    continue; // drop the packet and continue reading
+		    }
+		    return pkt;
+	    }
+
+
+  }
+}
+
+bool rpc_wait_for_connection(lsp_client *client){
+	Connection* conn=client->connection;
+	int retry=1;
+	double timeout=1.0;
+	while(retry <= num_epochs*epoch_delay)
+	{
+		LSPMessage *msg = rpc_read_message(client, timeout);
+		if (msg && msg->seqnum() == 0){
+			conn->id = msg->connid();
+			printf("[%d] Connected\n",conn->id); 
+			return true;
+		} else {
+			printf("Connecting to server \n");
+			retry++;
+			//return false;
+		}
+	}
+	printf("Max Retries:: Timed out waiting for connection from server after %.2f seconds\n",epoch_delay * num_epochs);
+	return false;
 }
 
 
